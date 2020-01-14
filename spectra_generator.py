@@ -6,6 +6,7 @@ Python Port Authors: Steven Bradley, Mateo Ibarguen, Nathan Philliber
 """
 import numpy as np
 
+
 def spectra_generator():
     count = 1
 
@@ -36,13 +37,15 @@ def spectra_generator():
 
         for k in range(num_columns):
             offset = 0
-            for jj in range((k-1) * (num_channels+1), k * num_channels):
+            for jj in range((k - 1) * (num_channels + 1), k * num_channels):
                 L = np.zeros(1, n)
-                phase[:] = phase_0[jj,:].reshape(N, 1)
+                phase[:] = phase_0[jj, :].reshape(N, 1)
                 amplitude[:] = amplitude_0[jj, :].reshape(N, 1)
 
                 for i in range(N):
-                    L = L + amplitude[i] / 2 * (np.exp(1*i * phase[i]) / (omega[i] + Omega + 1*i * gamma[i]) + np.exp(-1 * i * phase[i]) / (Omega - omega[i] + 1 * i * gamma[i]))
+                    L = L + amplitude[i] / 2 * (np.exp(np.multiply(1j, phase[i])) / (
+                            omega[i] + Omega + np.multiply(1j, gamma[i])) + np.exp(
+                                np.multiply(-1j, phase[i])) / (Omega - omega[i] + np.multiply(1j, gamma[i])))
 
                 cF = np.abs(L)
                 D = cF ** 2
