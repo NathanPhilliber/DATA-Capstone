@@ -6,7 +6,7 @@
 Welcome to NASA's documentation!
 ================================
 
-.. automodule:: spectra_generator.spectra_generator
+.. automodule:: spectra_generator
     :members:
 
 .. toctree::
