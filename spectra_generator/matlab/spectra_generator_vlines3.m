@@ -1,6 +1,7 @@
 function spectra_generator
 cnt=1;
 
+
 while(1)
     
     datafile = 'MyTrainingN3K80b';
