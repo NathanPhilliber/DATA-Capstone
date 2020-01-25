@@ -1,7 +1,7 @@
 import matlab.engine
 import matplotlib.pyplot as plt
 import seaborn as sns
-import json
+import pickle
 import numpy as np
 import os
 
@@ -16,10 +16,16 @@ PROJECT_ROOT = '/'.join(ROOT_DIR.split('/')[:-2])
 
 
 class Spectrum:
-    def __init__(self, n, dm, peak_locations, num_channels, **kwargs):
+    def __init__(self, n, dm, peak_locations, n_max, nc, k, scale, omega_shift, num_channels, n_max_s, **kwargs):
         self.n = n
         self.dm = dm
         self.peak_locations = peak_locations
+        self.n_max = n_max
+        self.n_max_s = n_max_s
+        self.nc = nc
+        self.k = k
+        self.scale = scale
+        self.omega_shift = omega_shift
         self.num_channels = num_channels
 
     def plot_channel(self, channel_number):
@@ -37,10 +43,18 @@ class Spectrum:
 
 
 class SpectraGenerator:
-    def __init__(self, n_max=DEFAULT_N_MAX, nc=DEFAULT_NC, k=DEFAULT_K, scale=DEFAULT_SCALE,
+    def __init__(self, n_max=DEFAULT_N_MAX, n_max_s=0.0, nc=DEFAULT_NC, k=DEFAULT_K, scale=DEFAULT_SCALE,
                  omega_shift=DEFAULT_OMEGA_SHIFT):
+        """
+
+        :param n_max:
+        :param nc:
+        :param k:
+        :param scale:
+        :param omega_shift:
+        """
         self.n_max = n_max
-        self.n_max_s = 5.0
+        self.n_max_s = n_max_s
         self.nc = nc
         self.k = k
         self.num_channels = self.nc * self.k
@@ -65,8 +79,8 @@ class SpectraGenerator:
 
     @staticmethod
     def save_spectra(spectra_json, filename):
-        with open(filename, 'w') as file_out:
-            json.dump(spectra_json, file_out)
+        with open(filename, 'wb') as file_out:
+            pickle.dump(spectra_json, file_out)
 
     def generate_save_spectra(self, n_instances, filename):
         spectra_json = self.generate_spectra_json(n_instances)
