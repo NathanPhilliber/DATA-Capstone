@@ -33,11 +33,19 @@ print(spectrum.__dict__)
 ```python
 spectrum.plot_channel(0)
 ```
+![Alt Text](plot_channel.png)
+
+```python
+spectrum.plot_channels()
+```
+![Alt Text](plot_channels.png)
 
 
 #### Generate Spectra
+The following code will generate 100 examples.
 ```python
-spectra_json = spectra_generator.generate_spectra_json(100)
+num_instances = 100
+spectra_json = spectra_generator.generate_spectra_json(num_instances)
 print(spectra_json)
 ```
 ```bash
