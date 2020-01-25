@@ -1,53 +1,74 @@
-"""
-This script is a Python3 port of spectra_generator_vlines3.m provided by Dr. Michael Khasin, NASA AMES Research.
-
-Original Author: Dr. Michael Khasin
-Python Port Authors: Steven Bradley, Mateo Ibarguen, Nathan Philliber
-"""
+import matlab.engine
+import matplotlib.pyplot as plt
+import seaborn as sns
+import json
 import numpy as np
+import os
+
+ENGINE = matlab.engine.start_matlab()
+DEFAULT_N_MAX = 5.0
+DEFAULT_NC = 10.0
+DEFAULT_K = 1.0
+DEFAULT_SCALE = 1.0
+DEFAULT_OMEGA_SHIFT = 10.0
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = '/'.join(ROOT_DIR.split('/')[:-2])
 
 
-def spectra_generator():
-    count = 1
+class Spectrum:
+    def __init__(self, n, dm, peak_locations, num_channels, **kwargs):
+        self.n = n
+        self.dm = dm
+        self.peak_locations = peak_locations
+        self.num_channels = num_channels
 
-    datafile = 'MyTrainingN3K80b'
-    max_resonances = 5
-    num_columns = 3
-    num_channels = 10
-    scale = 1
-    omega_shift = 10
-    while True:
-        N = np.floor(np.random.uniform(0, 1) * max_resonances) + 1
-        omega = scale * np.random.rand(1, N) + omega_shift
-        gamma = scale / max_resonances * (1 + np.dot(1.8, np.subtract(np.random.rand(1, N), 0.5))) / 4
+    def plot_channel(self, channel_number):
+        sns.lineplot(x=np.linspace(0, 1, self.dm[0].shape[0]), y=self.dm[channel_number])
+        for peak in self.peak_locations[0]:
+            plt.axvline(peak, 0, 1, c='red', alpha=0.6)
 
-        phase = np.zeros(shape=(1, N))
-        amplitude = np.zeros(shape=(1, N))
+    def plot_channels(self):
+        n_rows = (self.num_channels + 0.5) // 2
+        fig = plt.figure(figsize=(30, 35))
+        for channel in range(int(self.num_channels)):
+            plt.subplot(n_rows, 2, channel + 1)
+            self.plot_channel(channel)
+        plt.show()
 
-        phase_0 = 2 * np.pi * np.random.rand(num_channels * num_columns, N)
-        amplitude_0 = np.random.rand(num_channels * num_columns, N)
 
-        n = 1000 * omega_shift
-        omega_i = 0
-        omega_f = 2 * omega_shift + 1
-        omega_step = (omega_f - omega_i) / (n - 1)
-        Omega = np.arange(omega_i, omega_f, omega_step)
+class SpectraGenerator:
+    def __init__(self, n_max=DEFAULT_N_MAX, nc=DEFAULT_NC, k=DEFAULT_K, scale=DEFAULT_SCALE,
+                 omega_shift=DEFAULT_OMEGA_SHIFT):
+        self.n_max = n_max
+        self.n_max_s = 5.0
+        self.nc = nc
+        self.k = k
+        self.num_channels = self.nc * self.k
+        self.scale = scale
+        self.omega_shift = omega_shift
 
-        rng = np.arange(np.floor(n * (1 / 2 - 1 / 2 / omega_shift)), np.floor(n * (1 / 2 + 1 / 2 / omega_shift)))
+    def generate_spectrum(self):
+        n, dm, peak_locations = ENGINE.spectra_generator_simple(self.n_max, self.n_max_s, self.nc, self.k, self.scale,
+                                                                self.omega_shift, nargout=3)
+        dm_array, peak_array = np.array(dm), np.array(peak_locations)
+        del dm, peak_locations
+        spectrum = Spectrum(n=n, dm=dm_array, peak_locations=peak_array, **self.__dict__)
+        return spectrum
 
-        for k in range(num_columns):
-            offset = 0
-            for jj in range((k - 1) * (num_channels + 1), k * num_channels):
-                L = np.zeros(1, n)
-                phase[:] = phase_0[jj, :].reshape(N, 1)
-                amplitude[:] = amplitude_0[jj, :].reshape(N, 1)
+    def generate_spectra(self, n_instances):
+        return [self.generate_spectrum() for i in range(n_instances)]
 
-                for i in range(N):
-                    L = L + amplitude[i] / 2 * (np.exp(np.multiply(1j, phase[i])) / (
-                            omega[i] + Omega + np.multiply(1j, gamma[i])) + np.exp(
-                                np.multiply(-1j, phase[i])) / (Omega - omega[i] + np.multiply(1j, gamma[i])))
+    def generate_spectra_json(self, n_instances):
+        spectra = self.generate_spectra(n_instances)
+        spectra_json = [spectrum.__dict__ for spectrum in spectra]
+        return spectra_json
 
-                cF = np.abs(L)
-                D = cF ** 2
-                D = (D - np.min(D(rng))) / (np.max(D(rng)) - np.min(D(rng)))
-                offset = offset + 1
+    @staticmethod
+    def save_spectra(spectra_json, filename):
+        with open(filename, 'w') as file_out:
+            json.dump(spectra_json, file_out)
+
+    def generate_save_spectra(self, n_instances, filename):
+        spectra_json = self.generate_spectra_json(n_instances)
+        self.save_spectra(spectra_json, filename)
+

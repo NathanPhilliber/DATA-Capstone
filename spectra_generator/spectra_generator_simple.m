@@ -1,17 +1,14 @@
-function spectra_generator
+%Nmax=5 maximal number of resonances
+%NmaxS=5; maximal number of shellmodes
+%nc=10; number of channels
+%K=1; number of columns
+%scale, default to 1
+%omegaShift=10;
+
+function [N, Dm, peakLocations] = spectra_generator(Nmax, NmaxS, nc, K, scale, omegaShift)
 cnt=1;
-
-
-Nmax=5;%maximal number of resonances
-NmaxS=5; %maximal number of shellmodes
-
 N=floor(rand*Nmax)+1;
-NS=floor(rand*NmaxS)+1;% number of shellmodes 
-nc=10;%number of channes in one column
-K=1;%number of number of columns
-
-scale=1;
-omegaShift=10;
+NS=floor(rand*NmaxS)+1;% number of shellmodes
 
 omega=scale.*rand(1,N)+omegaShift;
 Gamma=scale./Nmax.*(1+1.8.*(rand(1,N)-0.5))./4; 
@@ -67,11 +64,9 @@ for k=1:K %number of subplots
         Dm(jj,:)=D(range);
         offsetm(jj)=offset;
         offset=offset+1;
+    peakLocations=(omega-Omega(range(1)))./(Omega(range(end))-Omega(range(1)));
     end
+    
 end
-
-
-dlmwrite('data.csv',N,'delimiter',',');
-dlmwrite('data.csv',Dm,'delimiter',',','-append');
 
 
