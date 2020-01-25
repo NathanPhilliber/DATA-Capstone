@@ -7,6 +7,18 @@ spectra_generator = SpectraGenerator(n_max=5, nc=10, k=1, scale=1,
                  omega_shift=10)
 spectrum = spectra_generator.generate_spectrum()
 ```
+
+**Installation Instructions:**
+
+*MAC OS*
+1. Find your 'matlabroot'
+  - Open Matlab Application
+  - In command window, enter '`matlabroot`'
+  - Note result (refer to as '`MATLABROOT`')
+2. Open terminal (either in Jupyter or machine)
+  - `cd MATLABROOT/extern/engines/python`
+  - `python setup.py install`
+
 ### Spectrum Class
 ```python
 print(spectrum.__dict__)
