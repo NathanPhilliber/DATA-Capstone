@@ -86,3 +86,31 @@ class SpectraGenerator:
         spectra_json = self.generate_spectra_json(n_instances)
         self.save_spectra(spectra_json, filename)
 
+
+class SpectraLoader:
+    def __init__(self, spectra_filename):
+        self.spectra_filename = spectra_filename
+        self.spectra = self.load_spectra()
+
+    def load_spectra_json(self):
+        spectra_file = open(self.spectra_filename, 'rb')
+        spectra_json = pickle.load(spectra_file)
+        return spectra_json
+
+    def load_spectra(self):
+        spectra_json = self.load_spectra_json()
+        spectra = [Spectrum(**spectrum_json) for spectrum_json in spectra_json]
+        del spectra_json
+        return spectra
+
+    def get_num_instances(self):
+        return len(self.spectra)
+
+    def get_dm(self):
+        return [spectrum.dm for spectrum in self.spectra]
+
+    def get_n(self):
+        return [spectrum.n for spectrum in self.spectra]
+
+    def get_peak_locations(self):
+        return [spectrum.peak_locations for spectrum in self.spectra]
