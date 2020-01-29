@@ -1,8 +1,8 @@
 import os
-import spectra_generator.spectra_generator
 
 """
 This is a utility to install matlab.engine in your python virtual environment
+Also updates virtual environment PYTHONPATH
 """
 
 # In matlab command window, enter '`matlabroot`' and copy to this variable:
