@@ -21,5 +21,6 @@ ipython_config.py
 
 #Pycharm
 .idea/
-
 *.pkl
+spectrum_generator/data/
+venv/
