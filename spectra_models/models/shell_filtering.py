@@ -1,4 +1,4 @@
-from spectra_models.spectra_models.base_model import BaseModel
+from spectra_models.models.base_model import BaseModel
 
 
 class ShellFiltering(BaseModel):
