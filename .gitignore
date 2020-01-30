@@ -21,3 +21,5 @@ ipython_config.py
 
 #Pycharm
 .idea/
+
+*.pkl
