@@ -45,12 +45,12 @@ print(spectrum.__dict__)
 ```python
 spectrum.plot_channel(0)
 ```
-![Alt Text](matlab/.plot_channel.png)
+![Alt Text](imgs/plot_channel.png)
 
 ```python
 spectrum.plot_channels()
 ```
-![Alt Text](matlab/.plot_channels.png)
+![Alt Text](imgs/plot_channels.png)
 
 
 #### Generate Spectra
