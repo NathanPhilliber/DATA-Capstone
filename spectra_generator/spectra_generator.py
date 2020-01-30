@@ -29,7 +29,7 @@ class Spectrum:
         self.num_channels = num_channels
 
     def plot_channel(self, channel_number):
-        sns.lineplot(x=np.linspace(0, 1, self.dm[0].shape[0]), y=self.dm[channel_number])
+        sns.lineplot(x=np.linspace(0, 1, len(self.dm[0])), y=self.dm[channel_number])
         for peak in self.peak_locations[0]:
             plt.axvline(peak, 0, 1, c='red', alpha=0.6)
 
@@ -53,20 +53,23 @@ class SpectraGenerator:
         :param scale:
         :param omega_shift:
         """
-        self.n_max = n_max
-        self.n_max_s = n_max_s
-        self.nc = nc
-        self.k = k
-        self.num_channels = self.nc * self.k
-        self.scale = scale
-        self.omega_shift = omega_shift
+        self.n_max = float(n_max)
+        self.n_max_s = float(n_max_s)
+        self.nc = float(nc)
+        self.k = float(k)
+        self.num_channels = float(self.nc * self.k)
+        self.scale = float(scale)
+        self.omega_shift = float(omega_shift)
 
     def generate_spectrum(self):
         n, dm, peak_locations = ENGINE.spectra_generator_simple(self.n_max, self.n_max_s, self.nc, self.k, self.scale,
                                                                 self.omega_shift, nargout=3)
-        dm_array, peak_array = np.array(dm), np.array(peak_locations)
-        del dm, peak_locations
-        spectrum = Spectrum(n=n, dm=dm_array, peak_locations=peak_array, **self.__dict__)
+        dm = [list(d) for d in dm]
+        if type(peak_locations) == float:
+            peak_locations = list([peak_locations])
+        else:
+            peak_locations = [list(p) for p in peak_locations]
+        spectrum = Spectrum(n=n, dm=dm, peak_locations=peak_locations, **self.__dict__)
         return spectrum
 
     def generate_spectra(self, n_instances):
@@ -114,3 +117,5 @@ class SpectraLoader:
 
     def get_peak_locations(self):
         return [spectrum.peak_locations for spectrum in self.spectra]
+
+
