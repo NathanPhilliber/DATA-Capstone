@@ -5,7 +5,7 @@ import pickle
 import numpy as np
 import os
 
-ENGINE = matlab.engine.start_matlab()
+
 DEFAULT_N_MAX = 5.0
 DEFAULT_NC = 10.0
 DEFAULT_K = 1.0
@@ -60,9 +60,10 @@ class SpectraGenerator:
         self.num_channels = float(self.nc * self.k)
         self.scale = float(scale)
         self.omega_shift = float(omega_shift)
+        self.engine = matlab.engine.start_matlab()
 
     def generate_spectrum(self):
-        n, dm, peak_locations = ENGINE.spectra_generator_simple(self.n_max, self.n_max_s, self.nc, self.k, self.scale,
+        n, dm, peak_locations = self.engine.spectra_generator_simple(self.n_max, self.n_max_s, self.nc, self.k, self.scale,
                                                                 self.omega_shift, nargout=3)
         dm = [list(d) for d in dm]
         if type(peak_locations) == float:
