@@ -39,13 +39,13 @@ class SpectraPreprocessor:
         y = y.reshape(y.shape[0], 1)
         return X, y
 
-    def transform(self):
+    def transform(self, encoded=False):
         X_train, y_train = self.get_data(self.train_spectra_loader)
         X_test, y_test = self.get_data(self.test_spectra_loader)
-        y_train_enc = self.one_hot_encoder.fit_transform(y_train)
-        y_test_enc = self.one_hot_encoder.transform(y_test)
-        del y_train, y_test
-        return X_train, y_train_enc, X_test, y_test_enc
+        if encoded:
+            y_train = self.one_hot_encoder.fit_transform(y_train)
+            y_test = self.one_hot_encoder.transform(y_test)
+        return X_train, y_train, X_test, y_test
 
 
 class BaseModel(ABC):
