@@ -3,6 +3,8 @@ from abc import abstractmethod
 from spectra_generator import Spectrum, SpectraLoader, SpectraGenerator
 from sklearn.preprocessing import OneHotEncoder
 import numpy as np
+import pprint
+
 
 MODEL_RESULTS_PATH = 'spectra_models/model_results.txt'
 
@@ -19,7 +21,8 @@ def get_model_params(model_name, train_path, test_path, model):
 def save_model(model_name, train_path, test_path, model):
     model_configs = get_model_params(model_name, train_path, test_path, model)
     with open(MODEL_RESULTS_PATH, 'a', encoding='UTF-8') as f:
-        f.write(str(model_configs) + '\n')
+        f.write(pprint.pformat(model_configs, indent=4))
+        
     print(f'Saved model results as {model_name} in the file: {MODEL_RESULTS_PATH}')
 
 
@@ -89,6 +92,6 @@ class BaseModel(ABC):
         params['batch_size'] = self.batch_size
         params['epochs'] = self.epochs
         params['history'] = self.get_model_history()
-        params['evaluate'] = {'y_test': self.y_test, 'y_test_pred': self.y_test_pred}
+        params['evaluate'] = {'y_test': self.y_test.tolist(), 'y_test_pred': self.y_test_pred.tolist()}
         return params
 
