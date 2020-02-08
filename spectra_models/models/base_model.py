@@ -4,9 +4,11 @@ from spectra_generator import Spectrum, SpectraLoader, SpectraGenerator
 from sklearn.preprocessing import OneHotEncoder
 import numpy as np
 import pprint
+import matplotlib.pyplot as plt
+import json
 
 
-MODEL_RESULTS_PATH = 'spectra_models/model_results.txt'
+MODEL_RESULTS_PATH = 'spectra_models/model_results/'
 
 
 def get_model_params(model_name, train_path, test_path, model):
@@ -20,10 +22,11 @@ def get_model_params(model_name, train_path, test_path, model):
 
 def save_model(model_name, train_path, test_path, model):
     model_configs = get_model_params(model_name, train_path, test_path, model)
-    with open(MODEL_RESULTS_PATH, 'a', encoding='UTF-8') as f:
-        f.write(pprint.pformat(model_configs, indent=4))
-        
-    print(f'Saved model results as {model_name} in the file: {MODEL_RESULTS_PATH}')
+    model_path = MODEL_RESULTS_PATH + model_name
+    with open(model_path, 'w') as f:
+        json.dump(str(model_configs), f)
+
+    print(f'Saved model results as {model_name} in the file: {model_path}')
 
 
 class SpectraPreprocessor:
@@ -56,12 +59,12 @@ class BaseModel(ABC):
 
     def __init__(self, keras_model):
         self.keras_model = keras_model
-        self.y_test = None
-        self.y_test_pred = None
+        self.test_results = None
         self.compile_dict = None
         self.batch_size = None
         self.epochs = None
         self.validation_size = None
+        self.history = None
 
     def fit(self, X_train, y_train, X_test, y_test, batch_size, epochs, compile_dict, validation_size=0.20):
         self.compile(compile_dict)
@@ -71,6 +74,7 @@ class BaseModel(ABC):
         self.epochs = epochs
         self.validation_size = validation_size
         self.evaluate(X_test, y_test)
+        self.history = self.get_model_history()
 
     def compile(self, compile_dict):
         self.keras_model.compile(**compile_dict)
@@ -82,8 +86,7 @@ class BaseModel(ABC):
         return self.keras_model.history.history
 
     def evaluate(self, X_test, y_test):
-        self.y_test = y_test
-        self.y_test_pred = self.keras_model.predict(X_test)
+        self.test_results = self.keras_model.evaluate(X_test, y_test)
 
     def to_dict(self):
         params = dict()
@@ -92,6 +95,7 @@ class BaseModel(ABC):
         params['batch_size'] = self.batch_size
         params['epochs'] = self.epochs
         params['history'] = self.get_model_history()
-        params['evaluate'] = {'y_test': self.y_test.tolist(), 'y_test_pred': self.y_test_pred.tolist()}
+        params['test_results'] = self.test_results
+        params['weights'] = self.keras_model.get_weights()
         return params
 
