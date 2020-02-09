@@ -23,8 +23,8 @@ os.chdir('spectra_generator')
 def spectra_train_test_splitter(spectra_loader, test_size=0.15, random_seed=42):
     spectra = np.array(spectra_loader.spectra)
     n_peaks = np.array(spectra_loader.get_n())
-    spectra_train , spectra_test, _, _ = train_test_split(spectra, n_peaks, stratify=n_peaks,
-                                                          test_size=test_size, random_seed=random_seed)
+    spectra_train, spectra_test, _, _ = train_test_split(spectra, n_peaks, stratify=n_peaks,
+                                                          test_size=test_size, random_state=random_seed)
     return spectra_train, spectra_test
 
 
