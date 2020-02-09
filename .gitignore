@@ -24,3 +24,4 @@ ipython_config.py
 *.pkl
 spectrum_generator/data/
 venv/
+/spectra_models/feb5-model.h5
