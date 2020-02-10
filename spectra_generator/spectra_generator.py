@@ -1,7 +1,7 @@
 from utils import *
 import matlab.engine
-import matplotlib.pyplot as plt
-import seaborn as sns
+#import matplotlib.pyplot as plt
+#import seaborn as sns
 import pickle
 import json
 import numpy as np
@@ -59,10 +59,12 @@ class SpectraGenerator:
         self.num_channels = float(self.nc * self.k)
         self.scale = float(scale)
         self.omega_shift = float(omega_shift)
+
+        os.chdir(GEN_DIR)
         self.engine = matlab.engine.start_matlab()
 
     def generate_spectrum(self):
-        os.chdir(GEN_DIR)
+
         n, dm, peak_locations = self.engine.spectra_generator_simple(float(self.n_max), float(self.n_max_s),
                                                                      float(self.nc), float(self.k), float(self.scale),
                                                                      float(self.omega_shift), nargout=3)
@@ -107,15 +109,25 @@ class SpectraGenerator:
 
 class SpectraLoader:
 
-    def __init__(self, dataset_name, subset_prefix, spectra_json=None):
+    def __init__(self, spectra_json=None, dataset_name=None, subset_prefix=None):
         self.spectra_json = spectra_json
-        self.spectra = self.load_data_from_dir(dataset_name, subset_prefix)
+        self.spectra = None
 
-    def load_data_from_dir(self, dataset_name, subset_prefix):
+        if spectra_json is not None:
+            self.spectra = self.load_from_json(spectra_json)
+
+        elif dataset_name is not None and subset_prefix is not None:
+            self.spectra = self.load_from_dir(dataset_name, subset_prefix)
+
+    def load_from_dir(self, dataset_name, subset_prefix):
         files = SpectraLoader.collect_sharded_files(dataset_name, subset_prefix)
         return self.load_spectra(files)
 
-    def load_spectra_json(self, datafiles):
+    def load_from_json(self, spectra_json):
+        self.spectra_json = spectra_json
+        return self.load_spectra()
+
+    def load_spectra_json_files(self, datafiles):
         all_data = []
         for filepath in datafiles:
             spectra_json = pickle.load(open(filepath, 'rb'))
@@ -123,13 +135,13 @@ class SpectraLoader:
 
         return all_data
 
-    def load_spectra(self, datafiles):
+    def load_spectra(self, datafiles=[]):
         if self.spectra_json is None:
-            self.spectra_json = self.load_spectra_json(datafiles)
+            self.spectra_json = self.load_spectra_json_files(datafiles)
 
-        spectra = [Spectrum(**spectrum_json) for spectrum_json in self.spectra_json]
+        self.spectra = [Spectrum(**spectrum_json) for spectrum_json in self.spectra_json]
         del self.spectra_json
-        return spectra
+        return self.spectra
 
     def get_num_instances(self):
         return len(self.spectra)

@@ -47,7 +47,7 @@ def check_clear_directory(directory, force=False):
         print(f"Warning '{directory}' contains the following files:")
         print("\t" + "\n\t".join(files))
 
-        answer = input("\nWould you like to remove them? (y/n)")
+        answer = input("\nWould you like to remove them? (y/n) ")
 
     if answer.lower() == 'y':
         for file in files:

@@ -4,7 +4,7 @@ from abc import abstractmethod
 from spectra_generator import Spectrum, SpectraLoader, SpectraGenerator
 from sklearn.preprocessing import OneHotEncoder
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import json
 
 
@@ -29,8 +29,8 @@ def save_model(model_name, train_path, test_path, model):
 class SpectraPreprocessor:
 
     def __init__(self, dataset_name):
-        self.train_spectra_loader = SpectraLoader(dataset_name, TRAIN_DATASET_PREFIX)
-        self.test_spectra_loader = SpectraLoader(dataset_name, TEST_DATASET_PREFIX)
+        self.train_spectra_loader = SpectraLoader(dataset_name=dataset_name, subset_prefix=TRAIN_DATASET_PREFIX)
+        self.test_spectra_loader = SpectraLoader(dataset_name=dataset_name, subset_prefix=TEST_DATASET_PREFIX)
         self.one_hot_encoder = OneHotEncoder(sparse=False, categories='auto')
 
     def get_data(self, loader):
