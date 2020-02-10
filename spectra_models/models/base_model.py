@@ -1,18 +1,11 @@
+from utils import *
 from abc import ABC
 from abc import abstractmethod
 from spectra_generator import Spectrum, SpectraLoader, SpectraGenerator
 from sklearn.preprocessing import OneHotEncoder
 import numpy as np
-import pprint
 import matplotlib.pyplot as plt
 import json
-
-
-
-MODEL_RESULTS_PATH = 'spectra_models/model_results/'
-
-
-
 
 
 def get_model_params(model_name, train_path, test_path, model):
@@ -26,7 +19,7 @@ def get_model_params(model_name, train_path, test_path, model):
 
 def save_model(model_name, train_path, test_path, model):
     model_configs = get_model_params(model_name, train_path, test_path, model)
-    model_path = MODEL_RESULTS_PATH + model_name
+    model_path = os.path.join(MODEL_RES_DIR, model_name)
     with open(model_path, 'w') as f:
         json.dump(str(model_configs), f)
 
@@ -34,11 +27,10 @@ def save_model(model_name, train_path, test_path, model):
 
 
 class SpectraPreprocessor:
-    def __init__(self, train_filename, test_filename):
-        self.train_filename = train_filename
-        self.test_filename = test_filename
-        self.train_spectra_loader = SpectraLoader(self.train_filename)
-        self.test_spectra_loader = SpectraLoader(self.test_filename)
+
+    def __init__(self, dataset_name):
+        self.train_spectra_loader = SpectraLoader(dataset_name, TRAIN_DATASET_PREFIX)
+        self.test_spectra_loader = SpectraLoader(dataset_name, TEST_DATASET_PREFIX)
         self.one_hot_encoder = OneHotEncoder(sparse=False, categories='auto')
 
     def get_data(self, loader):

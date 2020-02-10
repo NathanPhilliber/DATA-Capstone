@@ -1,3 +1,4 @@
+from utils import *
 import matlab.engine
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -8,6 +9,8 @@ import os
 import sys
 from sklearn.model_selection import train_test_split
 import click
+import math
+import re
 
 
 DEFAULT_N_MAX = 5.0
@@ -15,36 +18,10 @@ DEFAULT_NC = 10.0
 DEFAULT_K = 1.0
 DEFAULT_SCALE = 1.0
 DEFAULT_OMEGA_SHIFT = 10.0
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = '/'.join(ROOT_DIR.split('/')[:-2])
-os.chdir('spectra_generator')
-
-
-def spectra_train_test_splitter(spectra_loader, test_size=0.15, random_seed=42):
-    spectra = np.array(spectra_loader.spectra)
-    n_peaks = np.array(spectra_loader.get_n())
-    spectra_train, spectra_test, _, _ = train_test_split(spectra, n_peaks, stratify=n_peaks,
-                                                          test_size=test_size, random_state=random_seed)
-    return spectra_train, spectra_test
-
-
-def create_spectra_directory(directory):
-    try:
-        os.mkdir(directory)
-    except:
-        pass
-
-
-def create_spectra_info(spectra_generator, num_instances, directory):
-    spectra_generor_dict = spectra_generator.__dict__
-    del spectra_generor_dict['engine']
-    spectra_generor_dict['num_instances'] = num_instances
-    info_filename = directory + '/sample_info.json'
-    with open(info_filename, 'w') as f:
-        json.dump(spectra_generor_dict, f, indent=4)
 
 
 class Spectrum:
+
     def __init__(self, n, dm, peak_locations, n_max, nc, k, scale, omega_shift, num_channels, n_max_s, **kwargs):
         self.n = n
         self.dm = dm
@@ -72,6 +49,7 @@ class Spectrum:
 
 
 class SpectraGenerator:
+
     def __init__(self, n_max=DEFAULT_N_MAX, n_max_s=5.0, nc=DEFAULT_NC, k=DEFAULT_K, scale=DEFAULT_SCALE,
                  omega_shift=DEFAULT_OMEGA_SHIFT):
         self.n_max = float(n_max)
@@ -84,6 +62,7 @@ class SpectraGenerator:
         self.engine = matlab.engine.start_matlab()
 
     def generate_spectrum(self):
+        os.chdir(GEN_DIR)
         n, dm, peak_locations = self.engine.spectra_generator_simple(float(self.n_max), float(self.n_max_s),
                                                                      float(self.nc), float(self.k), float(self.scale),
                                                                      float(self.omega_shift), nargout=3)
@@ -104,29 +83,50 @@ class SpectraGenerator:
         return spectra_json
 
     @staticmethod
-    def save_spectra(spectra_json, filename):
-        with open(filename, 'wb') as file_out:
+    def save_spectra(spectra_json, filename, save_dir="."):
+        filepath = os.path.join(save_dir, filename)
+
+        with open(filepath, 'wb') as file_out:
             pickle.dump(spectra_json, file_out)
 
     def generate_save_spectra(self, n_instances, filename):
+        filepath = os.path.join(DATA_DIR, filename)
         spectra_json = self.generate_spectra_json(n_instances)
-        self.save_spectra(spectra_json, filename)
+        self.save_spectra(spectra_json, filepath)
+
+    def create_spectra_info(self, num_instances, directory=".", filename="sample_info.json"):
+        spectra_generator_dict = self.__dict__
+
+        del spectra_generator_dict['engine']
+        spectra_generator_dict['num_instances'] = num_instances
+
+        info_filename = os.path.join(directory, filename)
+        with open(info_filename, 'w') as f:
+            json.dump(spectra_generator_dict, f, indent=4)
 
 
 class SpectraLoader:
-    def __init__(self, spectra_filename=None, spectra_json=None):
-        self.spectra_filename = spectra_filename
+
+    def __init__(self, dataset_name, subset_prefix, spectra_json=None):
         self.spectra_json = spectra_json
-        self.spectra = self.load_spectra()
+        self.spectra = self.load_data_from_dir(dataset_name, subset_prefix)
 
-    def load_spectra_json(self):
-        spectra_file = open(self.spectra_filename, 'rb')
-        spectra_json = pickle.load(spectra_file)
-        return spectra_json
+    def load_data_from_dir(self, dataset_name, subset_prefix):
+        files = SpectraLoader.collect_sharded_files(dataset_name, subset_prefix)
+        return self.load_spectra(files)
 
-    def load_spectra(self):
+    def load_spectra_json(self, datafiles):
+        all_data = []
+        for filepath in datafiles:
+            spectra_json = pickle.load(open(filepath, 'rb'))
+            all_data.extend(spectra_json)
+
+        return all_data
+
+    def load_spectra(self, datafiles):
         if self.spectra_json is None:
-            self.spectra_json = self.load_spectra_json()
+            self.spectra_json = self.load_spectra_json(datafiles)
+
         spectra = [Spectrum(**spectrum_json) for spectrum_json in self.spectra_json]
         del self.spectra_json
         return spectra
@@ -143,27 +143,78 @@ class SpectraLoader:
     def get_peak_locations(self):
         return [spectrum.peak_locations for spectrum in self.spectra]
 
+    def spectra_train_test_splitter(self, test_size=0.15, random_seed=42):
+        spectra = np.array(self.spectra)
+        n_peaks = np.array(self.get_n())
+        spectra_train, spectra_test, _, _ = train_test_split(spectra, n_peaks, stratify=n_peaks,
+                                                             test_size=test_size, random_state=random_seed)
+        return spectra_train, spectra_test
+
+    @staticmethod
+    def collect_sharded_files(dataset_name, subset):
+        dataset_path = os.path.join(DATA_DIR, dataset_name)
+
+        files = os.listdir(dataset_path)
+        files_filtered = sorted([os.path.join(dataset_path, file)
+                          for file in files if re.match(f"{subset}_.+.{DATASET_FILE_TYPE}", file)])
+
+        return files_filtered
+
 
 @click.command()
 @click.option('--num-instances', default=10000, help='Number of instances to create. ')
 @click.option('--name', prompt='Spectra are stored in this directory. ')
-def main(num_instances, name):
-    directory = ROOT_DIR + f'/data/{name}'
-    create_spectra_directory(directory)
+@click.option('--shard-size', default=0, help='How many spectra to put in each shard (0 = no shard). ')
+def main(num_instances, name, shard_size):
+
+    # Setup data directory
+    directory = os.path.join(DATA_DIR, name)
+    try_create_directory(directory)
+    check_clear_directory(directory)
+
+    print("Creating generator")
     spectra_generator = SpectraGenerator()
-    spectra_json = spectra_generator.generate_spectra_json(num_instances)
-    spectra_loader = SpectraLoader(spectra_json=spectra_json)
-    spectra_train, spectra_test = spectra_train_test_splitter(spectra_loader)
-    spectra_train_json = [spectrum.__dict__ for spectrum in spectra_train]
-    spectra_test_json = [spectrum.__dict__ for spectrum in spectra_test]
-    SpectraGenerator.save_spectra(spectra_train_json, f'{directory}/train_{name}.pkl')
-    SpectraGenerator.save_spectra(spectra_test_json, f'{directory}/test_{name}.pkl')
-    create_spectra_info(spectra_generator, num_instances, directory)
+
+    # If we don't want to shard, set to num_instances to make num_shards = 1
+    if shard_size == 0:
+        shard_size = num_instances
+    num_shards = int(math.ceil(num_instances/shard_size))
+
+    num_saved = 0
+    for shard_i in range(0, num_shards):
+        num_left = num_instances - num_saved
+        gen_num = shard_size
+
+        if num_left < shard_size:
+            gen_num = num_left
+
+        print(f"Generating {gen_num} spectra for shard #{shard_i+1}...")
+        spectra_json = spectra_generator.generate_spectra_json(gen_num)
+
+        print("  Making SpectraLoader...")
+        spectra_loader = SpectraLoader(spectra_json=spectra_json)
+
+        print("  Splitting data...")
+        spectra_train, spectra_test = spectra_loader.spectra_train_test_splitter()
+        spectra_train_json = [spectrum.__dict__ for spectrum in spectra_train]
+        spectra_test_json = [spectrum.__dict__ for spectrum in spectra_test]
+
+        print("  Saving training data...")
+        train_name = f'{TRAIN_DATASET_PREFIX}_{name}.pkl' if shard_size == num_instances else \
+            f'{TRAIN_DATASET_PREFIX}_{name}-p{shard_i+1}.{DATASET_FILE_TYPE}'
+        SpectraGenerator.save_spectra(spectra_train_json, train_name, directory)
+
+        print("  Saving testing data...")
+        test_name = f'{TEST_DATASET_PREFIX}_{name}.pkl' if shard_size == num_instances else \
+            f'{TEST_DATASET_PREFIX}_{name}-p{shard_i + 1}.{DATASET_FILE_TYPE}'
+        SpectraGenerator.save_spectra(spectra_test_json, test_name, directory)
+
+        num_saved += gen_num
+
+    print("Saving info...")
+    spectra_generator.create_spectra_info(num_instances, directory)
+    print(f"Saved {num_saved} spectra.\nDone.")
 
 
 if __name__ == '__main__':
     main()
-
-
-
-
