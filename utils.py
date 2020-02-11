@@ -10,7 +10,7 @@ MODEL_RES_DIR = os.path.join(MODELS_DIR, "results")
 TRAIN_DATASET_PREFIX = "train"
 TEST_DATASET_PREFIX = "test"
 DATASET_FILE_TYPE = "pkl"
-
+DATAGEN_CONFIG = "gen_info.json"
 
 def try_create_directory(directory, silent=False):
     """
