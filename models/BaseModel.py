@@ -4,31 +4,16 @@ from abc import abstractmethod
 from datagen import Spectrum, SpectraLoader, SpectraGenerator
 from sklearn.preprocessing import OneHotEncoder
 import numpy as np
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import json
-import random
-
-
-def get_model_params(model_name, train_path, test_path, model):
-    model_dict = dict()
-    model_dict['name'] = model_name
-    model_dict['train_path'] = train_path
-    model_dict['test_path'] = test_path
-    model_dict['model_params'] = model.to_dict()
-    return model_dict
-
-
-def save_model(model_name, train_path, test_path, model):
-    model_configs = get_model_params(model_name, train_path, test_path, model)
-    model_path = os.path.join(MODEL_RES_DIR, model_name)
-    with open(model_path, 'w') as f:
-        json.dump(str(model_configs), f)
-
-    print(f'Saved model results as {model_name} in the file: {model_path}')
 
 
 class BaseModel(ABC):
     """ Abstract class for our models to extend. """
+
+    @abstractmethod
+    def build_model(self, num_channels, num_timesteps, output_shape):
+        pass
 
     def __init__(self, keras_model):
         self.keras_model = keras_model
@@ -50,7 +35,8 @@ class BaseModel(ABC):
         self.evaluate(X_test, y_test)
         self.history = self.get_model_history()
 
-    def fit_generator(self, preprocessor, train_size, X_test, y_test, batch_size, epochs, compile_dict, validation_size=0.20, encoded=False):
+    def fit_generator(self, preprocessor, train_size, X_test, y_test, batch_size, epochs, compile_dict,
+                      validation_size=0.20, encoded=False):
         self.compile(compile_dict)
         self.keras_model.fit_generator(preprocessor.train_generator(batch_size=batch_size, encoded=encoded),
                                        steps_per_epoch=train_size//batch_size, validation_data=(X_test, y_test),
