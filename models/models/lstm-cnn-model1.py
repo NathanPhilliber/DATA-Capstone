@@ -2,14 +2,16 @@ from utils import *
 from spectra_models import *
 from keras.models import Sequential, Model
 from keras.layers import Dense, Conv2D, Flatten, LSTM, TimeDistributed, MaxPooling2D, BatchNormalization, Dropout, \
-    Conv1D, MaxPooling1D, Bidirectional, CuDNNGRU, Reshape, Concatenate, concatenate, Input
+    Conv1D, MaxPooling1D, Bidirectional, CuDNNGRU, Reshape, Concatenate, concatenate, Input, CuDNNLSTM
 from keras.optimizers import SGD, Adam
 from spectra_models.models.attention import Attention
 
 
 def main():
+    print(f"Running model {use_version}")
     print(f"Creating Preprocessor for set {dataset_name}")
     spectra_preprocessor = SpectraPreprocessor(dataset_name=dataset_name, use_generator=True)
+    #spectra_preprocessor = SpectraPreprocessor(dataset_name=dataset_name, use_generator=False)
     print("Splitting dataset")
     X_test, y_test = spectra_preprocessor.transform_test(encoded=True)
     #X_train, y_train, X_test, y_test = spectra_preprocessor.transform(encoded=True)
@@ -18,7 +20,7 @@ def main():
 
     baseline_model_compile_dict = {'optimizer': optimizer,
                                    'loss': loss,
-                                   'metrics':['accuracy']}
+                                   'metrics':['accuracy', 'mae', 'mse']}
 
     baseline_model = BaseModel(lstm_model)
     #baseline_model.fit(X_train, y_train, X_test, y_test, batch_size=batch_size, epochs=n_epochs, compile_dict=baseline_model_compile_dict)
@@ -204,7 +206,7 @@ def build_model(version=0):
         return model
 
     elif version == 11:
-        # 78% val accuracy @ 30 epochs, adam, batch_size=32
+        # 84% val accuracy @ 35 epochs, adam, batch_size=64, set_05
         model = Sequential()
         model.add(Reshape((1001, 10), input_shape=(1001, 10, 1)))
         model.add(BatchNormalization(momentum=0.98, input_shape=(1001, 10)))
@@ -218,22 +220,38 @@ def build_model(version=0):
 
         return model
 
+    elif version == 12:
+        # _% val accuracy @ 35 epochs, adam, batch_size=64, set_05
+        model = Sequential()
+        model.add(Reshape((1001, 10), input_shape=(1001, 10, 1)))
+        model.add(BatchNormalization(momentum=0.98, input_shape=(1001, 10)))
+        model.add(Bidirectional(CuDNNLSTM(128, return_sequences=True)))
+        model.add(Bidirectional(CuDNNLSTM(128, return_sequences=True)))
+        model.add(Attention(1001))
+        model.add(Dropout(.5))
+        model.add(Dense(500, activation='elu'))
+        model.add(Dropout(.5))
+        model.add(Dense(5, activation='softmax'))
+
+        return model
+
+
     else:
         return None
 
 
-train_path = 'spectra_generator/data/train_01.pkl'
-test_path = 'spectra_generator/data/test_01.pkl'
+train_path = 'datagen/data/train_01.pkl'
+test_path = 'datagen/data/test_01.pkl'
 
 learning_rate = .0005
 momentum = .9
 decay = 1e-6
-loss = "categorical_crossentropy"
+loss = "categorical_crossentropy" #"poisson",
 batch_size = 64
 n_epochs = 35
 optimizer = 'adam'
 #optimizer = SGD(lr=learning_rate, momentum=momentum, decay=decay)
-use_version = 11
+use_version = 12
 save_name = "model-version" + str(use_version)
 dataset_name = "set_05"
 

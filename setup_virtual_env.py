@@ -6,7 +6,7 @@ Also updates virtual environment PYTHONPATH
 """
 
 # In matlab command window, enter '`matlabroot`' and copy to this variable:
-MATLABROOT = "/Applications/MATLAB_R2019b.app/extern/engines/python"
+MATLABROOT = "/usr/local/MATLAB/R2019b"
 VENV_DIRNAME = "venv"
 
 project_root = os.path.dirname(os.path.realpath(__file__))
@@ -21,8 +21,8 @@ if ans.lower() != 'y':
     exit(0)
 
 # First run matlab setup
-os.chdir(MATLABROOT)
-os.system('python3 setup.py install --prefix="%s"' % os.path.join(project_root, VENV_DIRNAME))
+os.chdir(os.path.join(MATLABROOT, "extern", "engines", "python"))
+os.system('sudo python3 setup.py install --prefix="%s"' % os.path.join(project_root, VENV_DIRNAME))
 
 
 # Copy this into venv/activate

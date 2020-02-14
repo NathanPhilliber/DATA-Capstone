@@ -1,1 +1,0 @@
-from spectra_generator.spectra_generator import *

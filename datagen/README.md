@@ -1,7 +1,7 @@
 ## Spectra Generator
 
 ```python
-from spectra_generator import SpectraGenerator
+from datagen import SpectraGenerator
 
 spectra_generator = SpectraGenerator(n_max=5, nc=10, k=1, scale=1,
                  omega_shift=10)
@@ -45,12 +45,12 @@ print(spectrum.__dict__)
 ```python
 spectrum.plot_channel(0)
 ```
-![Alt Text](imgs/plot_channel.png)
+![Alt Text](notebooks/imgs/plot_channel.png)
 
 ```python
 spectrum.plot_channels()
 ```
-![Alt Text](imgs/plot_channels.png)
+![Alt Text](notebooks/imgs/plot_channels.png)
 
 
 #### Generate Spectra

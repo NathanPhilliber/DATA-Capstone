@@ -1,7 +1,7 @@
 from utils import *
 from abc import ABC
 from abc import abstractmethod
-from spectra_generator import Spectrum, SpectraLoader, SpectraGenerator
+from datagen import Spectrum, SpectraLoader, SpectraGenerator
 from sklearn.preprocessing import OneHotEncoder
 import numpy as np
 #import matplotlib.pyplot as plt
@@ -67,7 +67,8 @@ class SpectraPreprocessor:
         files = self.train_spectra_loader.get_data_files()
 
         num_files = len(files)
-        spectra = []
+        spectra_x = None
+        spectra_y = None
 
         while True:
             if cur_set_i >= num_files:
@@ -76,13 +77,36 @@ class SpectraPreprocessor:
 
             self.train_spectra_loader.load_spectra([files[cur_set_i]], del_old=True)
             cur_set_i += 1
-            spectra.extend(self.transform_train(encoded=encoded))
+            #spectra.append(self.transform_train(encoded=encoded))
+            dat = self.transform_train(encoded=encoded)
+            #spectra_x = np.concatenate((spectra_x, dat[0]))
+            #spectra_y = np.concatenate((spectra_y, dat[1]))
+            #print("Append start")
+            #spectra_x.extend(dat[0].tolist())
+            #spectra_y.extend(dat[1].tolist())
 
-            while len(spectra) >= batch_size:
-                spectra_batch = spectra[:batch_size]
-                spectra = spectra[batch_size:]
-                print("Yielding batch")
-                yield spectra_batch[0], spectra_batch[1]
+            if spectra_x is None:
+                spectra_x = dat[0]
+            else:
+                spectra_x = np.concatenate((spectra_x, dat[0]))
+
+            if spectra_y is None:
+                spectra_y = dat[1]
+            else:
+                spectra_y = np.concatenate((spectra_y, dat[1]))
+            #print("Append stop")
+
+
+            #print(spectra_x)
+            #print(len(spectra_x))
+
+            while len(spectra_x) >= batch_size:
+                spectra_batch_x = spectra_x[:batch_size]
+                spectra_batch_y = spectra_y[:batch_size]
+                spectra_x = spectra_x[batch_size:]
+                spectra_y = spectra_y[batch_size:]
+
+                yield spectra_batch_x, spectra_batch_y
 
     def get_num_training_files(self):
         return len(self.train_spectra_loader.get_data_files())
@@ -114,7 +138,7 @@ class BaseModel(ABC):
     def fit_generator(self, preprocessor, train_size, X_test, y_test, batch_size, epochs, compile_dict, validation_size=0.20, encoded=False):
         self.compile(compile_dict)
         self.keras_model.fit_generator(preprocessor.train_generator(batch_size=batch_size, encoded=encoded),
-                                       steps_per_epoch=train_size//batch_size,
+                                       steps_per_epoch=train_size//batch_size, validation_data=(X_test, y_test),
                                        epochs=epochs)
         self.compile_dict = compile_dict
         self.batch_size = batch_size

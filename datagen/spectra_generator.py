@@ -125,7 +125,6 @@ class SpectraLoader:
         return SpectraLoader.collect_sharded_files(self.dataset_name, self.subset_prefix)
 
     def load_from_dir(self, dataset_name, subset_prefix):
-        print("Loading from dir")
         self.dataset_name = dataset_name
         self.subset_prefix = subset_prefix
 
@@ -133,12 +132,10 @@ class SpectraLoader:
         return self.load_spectra(files)
 
     def load_from_json(self, spectra_json):
-        print("Loading from json")
         self.spectra_json = spectra_json
         return self.load_spectra()
 
     def load_spectra_json_files(self, datafiles):
-        print("Loading all ", datafiles)
         all_data = []
         for filepath in datafiles:
             spectra_json = self.load_spectra_json(filepath)
