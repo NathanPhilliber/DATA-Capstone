@@ -23,7 +23,7 @@ if ans.lower() != 'y':
 # First run matlab setup
 os.chdir(os.path.join(MATLABROOT, "extern", "engines", "python"))
 os.system('sudo python3 setup.py install --prefix="%s"' % os.path.join(project_root, VENV_DIRNAME))
-
+os.system('sudo apt-get install python3-tk')
 
 # Copy this into venv/activate
 add_import = 'export PYTHONPATH="%s"' % project_root
