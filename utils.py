@@ -4,7 +4,7 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 GEN_DIR = os.path.join(PROJECT_ROOT, "datagen")
 MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
-DATA_DIR = os.path.join(GEN_DIR, "data")
+DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 MODEL_RES_DIR = os.path.join(MODELS_DIR, "results")
 
 TRAIN_DATASET_PREFIX = "train"
