@@ -8,17 +8,31 @@ import importlib
 
 def main():
     module_tups = get_modules(MODELS_DIR)
-    selection, class_name = prompt_model_selection(module_tups)
-    module, package_name = module_tups[selection]
+    model_selection, class_name = prompt_model_selection(module_tups)
+    module, package_name = module_tups[model_selection]
     model_class = getattr(module, class_name)
 
+    dataset_name = prompt_dataset_selection()
+
     model = model_class(10, 1001, 5)
+
+
+def prompt_dataset_selection():
+    data_dirs = os.listdir(DATA_DIR)
+    print(f"\nThe following datasets were found in {to_local_path(DATA_DIR)}:")
+    for dir_i, dir in enumerate(data_dirs):
+        print(f"  {dir_i}:\t {dir}")
+
+    selection = int(input("\nSelect dataset to use: "))
+
+    return data_dirs[selection]
 
 
 def prompt_model_selection(module_tups):
     list_i = 0
     names = []
-    print(f"The following models were found in {to_local_path(MODELS_DIR)}:")
+
+    print(f"\nThe following models were found in {to_local_path(MODELS_DIR)}:")
     for module_i, (module, module_name) in enumerate(module_tups):
         classes = get_classes(module, module_name)
 
@@ -27,9 +41,7 @@ def prompt_model_selection(module_tups):
             list_i += 1
             names.append(class_name)
 
-    print()
-
-    selection = int(input("Select model to run: "))
+    selection = int(input("\nSelect model to run: "))
 
     return selection, names[selection]
 
