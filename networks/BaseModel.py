@@ -10,8 +10,8 @@ class BaseModel(ABC):
     def build_model(self, num_channels, num_timesteps, output_shape):
         pass
 
-    def __init__(self, keras_model):
-        self.keras_model = keras_model
+    def __init__(self, num_channels, num_timesteps, output_shape):
+        self.keras_model = self.build_model(num_channels, num_timesteps, output_shape)
         self.test_results = None
         self.compile_dict = None
         self.batch_size = None
@@ -65,4 +65,5 @@ class BaseModel(ABC):
         params['test_results'] = self.test_results
         params['weights'] = self.keras_model.get_weights()
         return params
+
 

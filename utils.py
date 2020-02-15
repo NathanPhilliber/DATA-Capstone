@@ -4,14 +4,20 @@ import sys
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 GEN_DIR = os.path.join(PROJECT_ROOT, "datagen")
-MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
+NETWORKS_DIR = os.path.join(PROJECT_ROOT, "networks")
+MODELS_DIR = os.path.join(NETWORKS_DIR, "models")
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
-MODEL_RES_DIR = os.path.join(MODELS_DIR, "results")
+MODEL_RES_DIR = os.path.join(NETWORKS_DIR, "results")
 
 TRAIN_DATASET_PREFIX = "train"
 TEST_DATASET_PREFIX = "test"
 DATASET_FILE_TYPE = "pkl"
 DATAGEN_CONFIG = "gen_info.json"
+
+
+def to_local_path(path):
+    return path.replace(PROJECT_ROOT, "")[len(os.path.sep):]
+
 
 def try_create_directory(directory, silent=False):
     """
