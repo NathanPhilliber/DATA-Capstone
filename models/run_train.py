@@ -43,7 +43,10 @@ def main():
         model.fit(X_train, y_train, X_test, y_test, batch_size=batch_size, epochs=n_epochs,
                   compile_dict=baseline_model_compile_dict)
 
-    model.keras_model.save("%s.h5" % os.path.join(MODEL_RES_DIR, class_name + "." + str(datetime.now().strftime("%m%d.%H%M"))))
+    save_dir = os.path.join(MODEL_RES_DIR, class_name + "." + str(datetime.now().strftime("%m%d.%H%M")))
+    try_create_directory(save_dir)
+    model.keras_model.save(os.path.join(save_dir, "model.h5"))
+    model.save(os.path.join(save_dir, "config.json"), class_name)
 
 
 def prompt_batch_size():

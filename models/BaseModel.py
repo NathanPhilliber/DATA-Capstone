@@ -1,6 +1,7 @@
 from utils import *
 from abc import ABC
 from abc import abstractmethod
+import json
 
 
 class BaseModel(ABC):
@@ -15,7 +16,7 @@ class BaseModel(ABC):
         self.test_results = None
         self.compile_dict = None
         self.batch_size = None
-        self.epochs = None
+        self.epochs = 0
         self.validation_size = None
         self.history = None
 
@@ -25,7 +26,7 @@ class BaseModel(ABC):
         self.keras_model.fit(X_train, y_train, validation_split=validation_size, epochs=epochs, batch_size=batch_size)
         self.compile_dict = compile_dict
         self.batch_size = batch_size
-        self.epochs = epochs
+        self.epochs += epochs
         self.validation_size = validation_size
         self.evaluate(X_test, y_test)
         self.history = self.get_model_history()
@@ -38,7 +39,7 @@ class BaseModel(ABC):
                                        epochs=epochs)
         self.compile_dict = compile_dict
         self.batch_size = batch_size
-        self.epochs = epochs
+        self.epochs += epochs
         self.validation_size = validation_size
         self.evaluate(X_test, y_test)
         self.history = self.get_model_history()
@@ -65,5 +66,10 @@ class BaseModel(ABC):
         params['test_results'] = self.test_results
         params['weights'] = self.keras_model.get_weights()
         return params
+
+    def save(self, save_path, class_name):
+        data = self.to_dict()
+        data["class_name"] = class_name
+        json.dump(str(data), open(save_path, "w"))
 
 
