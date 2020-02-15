@@ -5,6 +5,7 @@ import numpy as np
 import os
 from sklearn.model_selection import train_test_split
 import re
+import json
 
 
 class SpectraLoader:
@@ -76,6 +77,10 @@ class SpectraLoader:
         spectra_train, spectra_test, _, _ = train_test_split(spectra, n_peaks, stratify=n_peaks,
                                                              test_size=test_size, random_state=random_seed)
         return spectra_train, spectra_test
+
+    @staticmethod
+    def read_dataset_config(dataset_name):
+        return json.load(open(os.path.join(DATA_DIR, dataset_name, DATAGEN_CONFIG), "r"))
 
     @staticmethod
     def collect_sharded_files(dataset_name, subset):

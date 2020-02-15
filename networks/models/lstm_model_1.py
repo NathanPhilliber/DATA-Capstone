@@ -1,6 +1,4 @@
 from utils import *
-from datagen.SpectraGenerator import SpectraGenerator
-from networks.SpectraPreprocessor import SpectraPreprocessor
 from keras.models import Sequential, Model
 from keras.layers import Dense, Conv2D, Flatten, LSTM, TimeDistributed, MaxPooling2D, BatchNormalization, Dropout, \
     Conv1D, MaxPooling1D, Bidirectional, CuDNNGRU, Reshape, Concatenate, concatenate, Input, CuDNNLSTM

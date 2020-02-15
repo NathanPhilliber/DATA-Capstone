@@ -4,6 +4,7 @@ import inspect
 import importlib
 import json
 from networks.SpectraPreprocessor import SpectraPreprocessor
+from datagen.SpectraLoader import SpectraLoader
 from datetime import datetime
 
 
@@ -23,7 +24,7 @@ def main():
     batch_size = prompt_batch_size()
 
     model = model_class(dataset_config["num_channels"], 1001, 5)
-    use_generator = dataset_config["num_instances"] >= GENERATOR_LIMIT
+    use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
     spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, use_generator=use_generator)
 
     baseline_model_compile_dict = {'optimizer': 'adam',
@@ -42,7 +43,7 @@ def main():
         model.fit(X_train, y_train, X_test, y_test, batch_size=batch_size, epochs=n_epochs,
                   compile_dict=baseline_model_compile_dict)
 
-    model.keras_model.save("%s.h5" % os.path.join(MODEL_RES_DIR, model_class + "-" + str(datetime.now())))
+    model.keras_model.save("%s.h5" % os.path.join(MODEL_RES_DIR, class_name + "." + str(datetime.now().strftime("%m%d.%H%M"))))
 
 
 def prompt_batch_size():
@@ -54,10 +55,11 @@ def prompt_num_epochs():
 
 
 def prompt_dataset_selection():
-    data_dirs = os.listdir(DATA_DIR)
+    data_dirs = sorted(os.listdir(DATA_DIR))
     print(f"\nThe following datasets were found in {to_local_path(DATA_DIR)}:")
-    for dir_i, dir in enumerate(data_dirs):
-        print(f"  {dir_i}:\t {dir}")
+    for dir_i, dir_name in enumerate(data_dirs):
+        config = SpectraLoader.read_dataset_config(dir_name)
+        print(f"  {dir_i}:\t {dir_name}\t {format(config['num_instances'], ',')} spectra")
 
     selection = int(input("\nSelect dataset to use: "))
 
@@ -70,7 +72,7 @@ def prompt_model_selection(module_tups):
 
     print(f"\nThe following models were found in {to_local_path(MODELS_DIR)}:")
     for module_i, (module, module_name) in enumerate(module_tups):
-        classes = get_classes(module, module_name)
+        classes = sorted(get_classes(module, module_name))
 
         for class_i, class_name in enumerate(classes):
             print(f"  {list_i}:\t {class_name}")
@@ -88,7 +90,7 @@ def get_classes(module, package_name):
 
 def get_modules(dirpath):
     mods = []
-    for file in os.listdir(dirpath):
+    for file in sorted(os.listdir(dirpath)):
         if file[:2] != "__":
             localpath = to_local_path(dirpath)
             package_name = ".".join(os.path.split(localpath)) + "." + os.path.splitext(file)[0]

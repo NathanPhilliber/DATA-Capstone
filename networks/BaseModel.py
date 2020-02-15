@@ -11,7 +11,7 @@ class BaseModel(ABC):
         pass
 
     def __init__(self, num_channels, num_timesteps, output_shape):
-        self.keras_model = self.build_model(num_channels, num_timesteps, output_shape)
+        self.keras_model = self.build_model(int(num_channels), int(num_timesteps), int(output_shape))
         self.test_results = None
         self.compile_dict = None
         self.batch_size = None

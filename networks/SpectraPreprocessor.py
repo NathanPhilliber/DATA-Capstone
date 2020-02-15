@@ -21,7 +21,7 @@ class SpectraPreprocessor:
 
     def get_data(self, loader):
         dm = np.array(loader.get_dm())
-        X = dm.reshape(dm.shape[0], dm.shape[2], dm.shape[1], 1)
+        X = dm.reshape(dm.shape[0], dm.shape[2], dm.shape[1])
         y = np.array(loader.get_n())
         y = y.reshape(y.shape[0], 1)
         return X, y

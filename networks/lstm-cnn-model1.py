@@ -6,6 +6,7 @@ from keras.layers import Dense, Conv2D, Flatten, LSTM, TimeDistributed, MaxPooli
     Conv1D, MaxPooling1D, Bidirectional, CuDNNGRU, Reshape, Concatenate, concatenate, Input, CuDNNLSTM
 from keras.optimizers import SGD, Adam
 from networks.attention import Attention
+from networks.BaseModel import BaseModel
 
 
 def main():
@@ -252,7 +253,7 @@ batch_size = 64
 n_epochs = 35
 optimizer = 'adam'
 #optimizer = SGD(lr=learning_rate, momentum=momentum, decay=decay)
-use_version = 12
+use_version = 11
 save_name = "model-version" + str(use_version)
 dataset_name = "set_05"
 

@@ -6,8 +6,9 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 GEN_DIR = os.path.join(PROJECT_ROOT, "datagen")
 NETWORKS_DIR = os.path.join(PROJECT_ROOT, "networks")
 MODELS_DIR = os.path.join(NETWORKS_DIR, "models")
-DATA_DIR = os.path.join(PROJECT_ROOT, "data")
-MODEL_RES_DIR = os.path.join(NETWORKS_DIR, "results")
+DATA_ROOT = os.path.join(PROJECT_ROOT, "data")
+DATA_DIR = os.path.join(DATA_ROOT, "datasets")
+MODEL_RES_DIR = os.path.join(DATA_ROOT, "results")
 
 TRAIN_DATASET_PREFIX = "train"
 TEST_DATASET_PREFIX = "test"
@@ -66,6 +67,7 @@ def check_clear_directory(directory, force=False):
     return False
 
 
+try_create_directory(DATA_ROOT, silent=True)
 try_create_directory(DATA_DIR, silent=True)
 try_create_directory(MODEL_RES_DIR, silent=True)
 
