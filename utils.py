@@ -4,8 +4,8 @@ import sys
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 GEN_DIR = os.path.join(PROJECT_ROOT, "datagen")
-NETWORKS_DIR = os.path.join(PROJECT_ROOT, "networks")
-MODELS_DIR = os.path.join(NETWORKS_DIR, "models")
+MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
+NETWORKS_DIR = os.path.join(MODELS_DIR, "networks")
 DATA_ROOT = os.path.join(PROJECT_ROOT, "data")
 DATA_DIR = os.path.join(DATA_ROOT, "datasets")
 MODEL_RES_DIR = os.path.join(DATA_ROOT, "results")

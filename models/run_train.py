@@ -3,7 +3,7 @@ import os
 import inspect
 import importlib
 import json
-from networks.SpectraPreprocessor import SpectraPreprocessor
+from models.SpectraPreprocessor import SpectraPreprocessor
 from datagen.SpectraLoader import SpectraLoader
 from datetime import datetime
 
@@ -12,7 +12,7 @@ GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator
 
 
 def main():
-    module_tups = get_modules(MODELS_DIR)
+    module_tups = get_modules(NETWORKS_DIR)
     model_selection, class_name = prompt_model_selection(module_tups)
     module, package_name = module_tups[model_selection]
     model_class = getattr(module, class_name)
@@ -70,7 +70,7 @@ def prompt_model_selection(module_tups):
     list_i = 0
     names = []
 
-    print(f"\nThe following models were found in {to_local_path(MODELS_DIR)}:")
+    print(f"\nThe following models were found in {to_local_path(NETWORKS_DIR)}:")
     for module_i, (module, module_name) in enumerate(module_tups):
         classes = sorted(get_classes(module, module_name))
 

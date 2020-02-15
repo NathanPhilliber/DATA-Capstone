@@ -4,7 +4,7 @@ from abc import abstractmethod
 
 
 class BaseModel(ABC):
-    """ Abstract class for our models to extend. """
+    """ Abstract class for our networks to extend. """
 
     @abstractmethod
     def build_model(self, num_channels, num_timesteps, output_shape):
