@@ -1,9 +1,13 @@
 from utils import *
-from glob import glob
 import os
 import inspect
-from networks.models import lstm_model_1
 import importlib
+import json
+from networks.SpectraPreprocessor import SpectraPreprocessor
+from datetime import datetime
+
+
+GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
 
 
 def main():
@@ -13,8 +17,40 @@ def main():
     model_class = getattr(module, class_name)
 
     dataset_name = prompt_dataset_selection()
+    dataset_config = json.load(open(os.path.join(DATA_DIR, dataset_name, DATAGEN_CONFIG), "r"))
 
-    model = model_class(10, 1001, 5)
+    n_epochs = prompt_num_epochs()
+    batch_size = prompt_batch_size()
+
+    model = model_class(dataset_config["num_channels"], 1001, 5)
+    use_generator = dataset_config["num_instances"] >= GENERATOR_LIMIT
+    spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, use_generator=use_generator)
+
+    baseline_model_compile_dict = {'optimizer': 'adam',
+                                   'loss': 'categorical_crossentropy',
+                                   'metrics': ['accuracy', 'mae', 'mse']}
+
+    if use_generator:
+        print("Using fit generator.")
+        X_test, y_test = spectra_pp.transform_test(encoded=True)
+        model.fit_generator(spectra_pp, spectra_pp.datagen_config["num_instances"], X_test,
+                            y_test, batch_size=batch_size, epochs=n_epochs,
+                            compile_dict=baseline_model_compile_dict, encoded=True)
+
+    else:
+        X_train, y_train, X_test, y_test = spectra_pp.transform(encoded=True)
+        model.fit(X_train, y_train, X_test, y_test, batch_size=batch_size, epochs=n_epochs,
+                  compile_dict=baseline_model_compile_dict)
+
+    model.keras_model.save("%s.h5" % os.path.join(MODEL_RES_DIR, model_class + "-" + str(datetime.now())))
+
+
+def prompt_batch_size():
+    return int(input("Enter batch size: "))
+
+
+def prompt_num_epochs():
+    return int(input("Enter number of epochs to train for: "))
 
 
 def prompt_dataset_selection():
