@@ -7,13 +7,29 @@ from models.Attention import Attention
 from models.BaseModel import BaseModel
 
 
-class LSTMModel1(BaseModel):
+class GRUModel1(BaseModel):
 
     def build_model(self, num_channels, num_timesteps, output_shape):
         model = Sequential()
         model.add(BatchNormalization(momentum=0.98, input_shape=(num_timesteps, num_channels)))
         model.add(Bidirectional(CuDNNGRU(128, return_sequences=True)))
         model.add(Bidirectional(CuDNNGRU(128, return_sequences=True)))
+        model.add(Attention(num_timesteps))
+        model.add(Dropout(.5))
+        model.add(Dense(500, activation='elu'))
+        model.add(Dropout(.5))
+        model.add(Dense(output_shape, activation='softmax'))
+
+        return model
+
+
+class LSTMModel1(BaseModel):
+
+    def build_model(self, num_channels, num_timesteps, output_shape):
+        model = Sequential()
+        model.add(BatchNormalization(momentum=0.98, input_shape=(num_timesteps, num_channels)))
+        model.add(Bidirectional(CuDNNLSTM(128, return_sequences=True)))
+        model.add(Bidirectional(CuDNNLSTM(128, return_sequences=True)))
         model.add(Attention(num_timesteps))
         model.add(Dropout(.5))
         model.add(Dense(500, activation='elu'))

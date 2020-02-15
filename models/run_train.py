@@ -72,6 +72,7 @@ def prompt_dataset_selection():
 def prompt_model_selection(module_tups):
     list_i = 0
     names = []
+    module_indices = []
 
     print(f"\nThe following models were found in {to_local_path(NETWORKS_DIR)}:")
     for module_i, (module, module_name) in enumerate(module_tups):
@@ -81,10 +82,11 @@ def prompt_model_selection(module_tups):
             print(f"  {list_i}:\t {class_name}")
             list_i += 1
             names.append(class_name)
+            module_indices.append(module_i)
 
     selection = int(input("\nSelect model to run: "))
 
-    return selection, names[selection]
+    return module_indices[selection], names[selection]
 
 
 def get_classes(module, package_name):
