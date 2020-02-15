@@ -1,4 +1,5 @@
 import os
+import sys
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -61,3 +62,4 @@ def check_clear_directory(directory, force=False):
 
 try_create_directory(DATA_DIR, silent=True)
 try_create_directory(MODEL_RES_DIR, silent=True)
+
