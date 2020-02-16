@@ -6,6 +6,7 @@ from keras import constraints
 
 
 class Attention(Layer):
+
     def __init__(self, step_dim,
                  W_regularizer=None, b_regularizer=None,
                  W_constraint=None, b_constraint=None,
@@ -20,9 +21,9 @@ class Attention(Layer):
         self.step_dim = step_dim
         self.features_dim = 0
         super(Attention, self).__init__(**kwargs)
+
     def build(self, input_shape):
         assert len(input_shape) == 3
-        print(self.name)
         self.W = self.add_weight(shape=(input_shape[-1],),
                                  initializer=self.init,
                                  name=f'{self.name}_W',
@@ -38,8 +39,10 @@ class Attention(Layer):
         else:
             self.b = None
         self.built = True
+
     def compute_mask(self, input, input_mask=None):
         return None
+
     def call(self, x, mask=None):
         features_dim = self.features_dim
         step_dim = self.step_dim
@@ -55,5 +58,6 @@ class Attention(Layer):
         a = K.expand_dims(a)
         weighted_input = x * a
         return K.sum(weighted_input, axis=1)
+
     def compute_output_shape(self, input_shape):
         return input_shape[0],  self.features_dim

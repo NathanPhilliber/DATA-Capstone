@@ -6,12 +6,22 @@ import json
 from models.SpectraPreprocessor import SpectraPreprocessor
 from datagen.SpectraLoader import SpectraLoader
 from datetime import datetime
+import click
+import tensorflow as tf
 
 
 GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 
 def main():
+    train_new_model()
+
+
+def train_new_model():
+    click.clear()
+    print("Train New Model Setup\n")
+
     module_tups = get_modules(NETWORKS_DIR)
     model_selection, class_name = prompt_model_selection(module_tups)
     module, package_name = module_tups[model_selection]
@@ -32,7 +42,7 @@ def main():
                                    'metrics': ['accuracy', 'mae', 'mse']}
 
     if use_generator:
-        print("Using fit generator.")
+        print("\nUsing fit generator.\n")
         X_test, y_test = spectra_pp.transform_test(encoded=True)
         model.fit_generator(spectra_pp, spectra_pp.datagen_config["num_instances"], X_test,
                             y_test, batch_size=batch_size, epochs=n_epochs,
@@ -47,6 +57,7 @@ def main():
     try_create_directory(save_dir)
     model.keras_model.save(os.path.join(save_dir, "model.h5"))
     model.save(os.path.join(save_dir, "config.json"), class_name)
+    print(f"Saved model to {to_local_path(MODEL_RES_DIR)}")
 
 
 def prompt_batch_size():
@@ -62,7 +73,7 @@ def prompt_dataset_selection():
     print(f"\nThe following datasets were found in {to_local_path(DATA_DIR)}:")
     for dir_i, dir_name in enumerate(data_dirs):
         config = SpectraLoader.read_dataset_config(dir_name)
-        print(f"  {dir_i}:\t {dir_name}\t {format(config['num_instances'], ',')} spectra")
+        print(f"  {dir_i}:\t {dir_name}\t {format(config['num_instances'], ',')} spectra\t {int(config['num_channels'])} channels")
 
     selection = int(input("\nSelect dataset to use: "))
 

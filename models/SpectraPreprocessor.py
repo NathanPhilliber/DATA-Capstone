@@ -36,7 +36,6 @@ class SpectraPreprocessor:
         return X_train, y_train
 
     def transform_test(self, encoded=False):
-        print("Transforming test")
         X_test, y_test = self.get_data(self.test_spectra_loader)
         if encoded:
             y_test = self.one_hot_encoder.transform(y_test)
@@ -57,13 +56,7 @@ class SpectraPreprocessor:
 
             self.train_spectra_loader.load_spectra([files[cur_set_i]], del_old=True)
             cur_set_i += 1
-            #spectra.append(self.transform_train(encoded=encoded))
             dat = self.transform_train(encoded=encoded)
-            #spectra_x = np.concatenate((spectra_x, dat[0]))
-            #spectra_y = np.concatenate((spectra_y, dat[1]))
-            #print("Append start")
-            #spectra_x.extend(dat[0].tolist())
-            #spectra_y.extend(dat[1].tolist())
 
             if spectra_x is None:
                 spectra_x = dat[0]
@@ -74,11 +67,6 @@ class SpectraPreprocessor:
                 spectra_y = dat[1]
             else:
                 spectra_y = np.concatenate((spectra_y, dat[1]))
-            #print("Append stop")
-
-
-            #print(spectra_x)
-            #print(len(spectra_x))
 
             while len(spectra_x) >= batch_size:
                 spectra_batch_x = spectra_x[:batch_size]
