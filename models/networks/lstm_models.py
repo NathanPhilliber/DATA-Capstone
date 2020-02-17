@@ -3,8 +3,8 @@ from keras.models import Sequential, Model
 from keras.layers import Dense, Conv2D, Flatten, LSTM, TimeDistributed, MaxPooling2D, BatchNormalization, Dropout, \
     Conv1D, MaxPooling1D, Bidirectional, CuDNNGRU, Reshape, Concatenate, concatenate, Input, CuDNNLSTM
 from keras.optimizers import SGD, Adam
-from models.Attention import Attention
-from models.BaseModel import BaseModel
+from models.attention import Attention
+from models.base_model import BaseModel
 
 
 class GRUModel1(BaseModel):
@@ -37,3 +37,4 @@ class LSTMModel1(BaseModel):
         model.add(Dense(output_shape, activation='softmax'))
 
         return model
+

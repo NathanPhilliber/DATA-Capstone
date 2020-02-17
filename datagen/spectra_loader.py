@@ -1,5 +1,5 @@
 from utils import *
-from datagen.Spectrum import Spectrum
+from datagen.spectrum import Spectrum
 import pickle
 import numpy as np
 import os
@@ -9,7 +9,6 @@ import json
 
 
 class SpectraLoader:
-
     def __init__(self, spectra_json=None, dataset_name=None, subset_prefix=None, eval_now=True):
         self.spectra_json = spectra_json
         self.spectra = None

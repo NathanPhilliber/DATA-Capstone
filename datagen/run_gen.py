@@ -1,8 +1,9 @@
 from utils import *
-from datagen.SpectraGenerator import SpectraGenerator
-from datagen.SpectraLoader import SpectraLoader
+from datagen.spectra_generator import SpectraGenerator
+from datagen.spectra_loader import SpectraLoader
 import click
 import math
+import os
 
 
 MAX_REC_SHARD_SIZE = 10000

@@ -3,8 +3,8 @@ import os
 import inspect
 import importlib
 import json
-from models.SpectraPreprocessor import SpectraPreprocessor
-from datagen.SpectraLoader import SpectraLoader
+from models.spectra_preprocessor import SpectraPreprocessor
+from datagen.spectra_loader import SpectraLoader
 from datetime import datetime
 import click
 import tensorflow as tf

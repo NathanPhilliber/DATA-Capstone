@@ -1,9 +1,9 @@
 ## Spectra Generator
 
 ```python
-from datagen import SpectraGenerator
+from datagen import spectra_generator
 
-spectra_generator = SpectraGenerator(n_max=5, nc=10, k=1, scale=1,
+spectra_generator = spectra_generator(n_max=5, nc=10, k=1, scale=1,
                  omega_shift=10)
 spectrum = spectra_generator.generate_spectrum()
 ```

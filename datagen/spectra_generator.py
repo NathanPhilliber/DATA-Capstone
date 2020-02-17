@@ -1,5 +1,5 @@
 from utils import *
-from datagen.Spectrum import Spectrum
+from datagen.spectrum import Spectrum
 import matlab.engine
 import pickle
 import json
