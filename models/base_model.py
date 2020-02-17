@@ -51,25 +51,52 @@ class BaseModel(ABC):
         return self.keras_model.to_json()
 
     def get_model_history(self):
-        return self.keras_model.history.history
+        history = self.keras_model.history.history
+        for key, value in history.items():
+            history[key] = [float(v) for v in value]
+        return history
 
     def evaluate(self, X_test, y_test):
         self.test_results = self.keras_model.evaluate(X_test, y_test)
 
-    def to_dict(self):
+    def get_info_dict(self):
         params = dict()
-        params['config'] = self.get_model_config()
         params['compile_dict'] = self.compile_dict
         params['batch_size'] = self.batch_size
         params['epochs'] = self.epochs
         params['history'] = self.get_model_history()
         params['test_results'] = self.test_results
-        params['weights'] = self.keras_model.get_weights()
         return params
 
-    def save(self, save_path, class_name):
-        data = self.to_dict()
-        data["class_name"] = class_name
-        json.dump(str(data), open(save_path, "w"))
+    def save(self, class_name, save_path='models/persist'):
+        model_directory = save_path + '/' + class_name
+        try_create_directory(model_directory)
+        weights_path = model_directory + '/weights.h5'
+        info_path = model_directory + '/info.json'
+        self.keras_model.save_weights(weights_path)
+
+        info_dict = self.get_info_dict()
+        json.dump(info_dict, open(info_path, "w"))
+
+    def persist(self, class_name, save_path='models/persist'):
+        model_directory = save_path + '/' + class_name
+        weights_path = model_directory + '/weights.h5'
+        info_path = model_directory + '/info.json'
+        info = json.load(open(info_path, 'r'))
+
+        self.compile_dict = info['compile_dict']
+        self.batch_size = info['batch_size']
+        self.epochs = info['epochs']
+        self.history = info['history']
+        self.test_results = info['test_results']
+
+        self.compile(self.compile_dict)
+        self.keras_model.load_weights(weights_path)
+
+
+
+
+
+
 
 
