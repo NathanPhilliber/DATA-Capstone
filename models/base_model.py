@@ -85,8 +85,8 @@ class BaseModel(ABC):
 
         return save_dir
 
-    def persist(self, dirname):
-        model_directory = os.path.join(MODEL_RES_DIR, dirname)
+    def persist(self, dirname, result_dir=MODEL_RES_DIR):
+        model_directory = os.path.join(result_dir, dirname)
         weights_path = os.path.join(model_directory, WEIGHTS_FILENAME)
         info_path = os.path.join(model_directory, TRAIN_INFO_FILENAME)
         info = json.load(open(info_path, 'r'))
