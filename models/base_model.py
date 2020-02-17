@@ -2,6 +2,7 @@ from utils import *
 from abc import ABC
 from abc import abstractmethod
 import json
+from datetime import datetime
 
 
 class BaseModel(ABC):
@@ -68,20 +69,26 @@ class BaseModel(ABC):
         params['test_results'] = self.test_results
         return params
 
-    def save(self, class_name, save_path='models/persist'):
-        model_directory = save_path + '/' + class_name
-        try_create_directory(model_directory)
-        weights_path = model_directory + '/weights.h5'
-        info_path = model_directory + '/info.json'
+    def save(self, class_name, save_dir=None):
+        if save_dir is None:
+            save_dir = os.path.join(MODEL_RES_DIR, class_name + "." + str(datetime.now().strftime("%m%d.%H%M")))
+
+        try_create_directory(save_dir)
+
+        weights_path = os.path.join(save_dir, WEIGHTS_FILENAME)
+        info_path = os.path.join(save_dir, TRAIN_INFO_FILENAME)
         self.keras_model.save_weights(weights_path)
 
         info_dict = self.get_info_dict()
+        info_dict["class_name"] = class_name
         json.dump(info_dict, open(info_path, "w"))
 
-    def persist(self, class_name, save_path='models/persist'):
-        model_directory = save_path + '/' + class_name
-        weights_path = model_directory + '/weights.h5'
-        info_path = model_directory + '/info.json'
+        return save_dir
+
+    def persist(self, dirname):
+        model_directory = os.path.join(MODEL_RES_DIR, dirname)
+        weights_path = os.path.join(model_directory, WEIGHTS_FILENAME)
+        info_path = os.path.join(model_directory, TRAIN_INFO_FILENAME)
         info = json.load(open(info_path, 'r'))
 
         self.compile_dict = info['compile_dict']
@@ -92,11 +99,3 @@ class BaseModel(ABC):
 
         self.compile(self.compile_dict)
         self.keras_model.load_weights(weights_path)
-
-
-
-
-
-
-
-

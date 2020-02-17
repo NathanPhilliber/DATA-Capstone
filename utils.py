@@ -14,6 +14,8 @@ TRAIN_DATASET_PREFIX = "train"
 TEST_DATASET_PREFIX = "test"
 DATASET_FILE_TYPE = "pkl"
 DATAGEN_CONFIG = "gen_info.json"
+WEIGHTS_FILENAME = "weights.h5"
+TRAIN_INFO_FILENAME = "info.json"
 
 
 def to_local_path(path):

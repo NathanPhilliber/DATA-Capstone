@@ -12,7 +12,8 @@ MAX_REC_SHARD_SIZE = 10000
 @click.option('--num-instances', default=10000, help='Number of instances to create. ')
 @click.option('--name', prompt='Spectra are stored in this directory. ')
 @click.option('--shard-size', default=0, help='How many spectra to put in each shard (0 = no shard). ')
-def main(num_instances, name, shard_size):
+@click.option('--num-channels', prompt=f'Number of channels to generate (default={SpectraGenerator.DEFAULT_NC}): ', default=SpectraGenerator.DEFAULT_NC)
+def main(num_instances, name, shard_size, num_channels):
 
     # Setup data directory
     directory = os.path.join(DATA_DIR, name)
@@ -20,7 +21,7 @@ def main(num_instances, name, shard_size):
     check_clear_directory(directory)
 
     print("Creating generator...")
-    spectra_generator = SpectraGenerator()
+    spectra_generator = SpectraGenerator(nc=num_channels)
 
     # If we don't want to shard, set to num_instances to make num_shards = 1
     if shard_size == 0:
