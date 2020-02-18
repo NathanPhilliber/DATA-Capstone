@@ -69,9 +69,10 @@ def prompt_dataset_selection():
     data_dirs = sorted(os.listdir(DATA_DIR))
     data_dirs = [data_dir for data_dir in data_dirs if os.path.isdir(os.path.join(DATA_DIR, data_dir))]
     print(f"\nThe following datasets were found in {to_local_path(DATA_DIR)}:")
+    print(f"{'Selection':10} {'Set Name':15} {'Num Spectra':15} {'Num Channels':15}")
     for dir_i, dir_name in enumerate(data_dirs):
         config = SpectraLoader.read_dataset_config(dir_name)
-        print(f"  {dir_i}:\t {dir_name}\t {format(config['num_instances'], ',')} spectra\t {int(config['num_channels'])} channels")
+        print(f"  {dir_i:6}:  {dir_name:15} {format(config['num_instances'], ','):15} {int(config['num_channels']):2}")
 
     selection = int(input("\nSelect dataset to use: "))
 
