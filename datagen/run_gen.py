@@ -8,12 +8,19 @@ import os
 
 MAX_REC_SHARD_SIZE = 10000
 
+
 @click.command()
-@click.option('--num-instances', default=10000, help='Number of instances to create. ')
 @click.option('--name', prompt='Spectra are stored in this directory. ')
+@click.option('--num-instances', default=10000, help='Number of instances to create. ')
 @click.option('--shard-size', default=0, help='How many spectra to put in each shard (0 = no shard). ')
 @click.option('--num-channels', prompt=f'Number of channels to generate (default={SpectraGenerator.DEFAULT_NC}): ', default=SpectraGenerator.DEFAULT_NC)
-def main(num_instances, name, shard_size, num_channels):
+@click.option('--n-max', prompt=f'Maximum number of modes (default={SpectraGenerator.DEFAULT_N_MAX}): ', default=SpectraGenerator.DEFAULT_N_MAX)
+@click.option('--n-max-s', prompt=f'Maximum number of shell peaks (default={SpectraGenerator.DEFAULT_N_MAX_S}): ', default=SpectraGenerator.DEFAULT_N_MAX_S)
+@click.option('--scale', prompt=f'Scale or width of window (default={SpectraGenerator.DEFAULT_SCALE}): ', default=SpectraGenerator.DEFAULT_SCALE)
+@click.option('--omega-shift', prompt=f'Omega Shift (default={SpectraGenerator.DEFAULT_N_MAX}): ', default=SpectraGenerator.DEFAULT_N_MAX)
+@click.option('--dg', prompt=f'Variation of Gamma. (default={SpectraGenerator.DEFAULT_DG}): ', default=SpectraGenerator.DEFAULT_DG)
+@click.option('--dgs', prompt=f'Variation of Gamma for shell modes. (default={SpectraGenerator.DEFAULT_DGS}): ', default=SpectraGenerator.DEFAULT_DGS)
+def main(name, num_instances, shard_size, num_channels, n_max, n_max_s, scale, omega_shift, dg, dgs):
 
     # Setup data directory
     directory = os.path.join(DATA_DIR, name)
@@ -21,7 +28,8 @@ def main(num_instances, name, shard_size, num_channels):
     check_clear_directory(directory)
 
     print("Creating generator...")
-    spectra_generator = SpectraGenerator(nc=num_channels)
+    spectra_generator = SpectraGenerator(nc=num_channels, n_max=n_max, n_max_s=n_max_s, scale=scale,
+                                         omega_shift=omega_shift, dg=dg, dgs=dgs)
 
     # If we don't want to shard, set to num_instances to make num_shards = 1
     if shard_size == 0:

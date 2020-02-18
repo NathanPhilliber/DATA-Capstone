@@ -6,14 +6,13 @@ import numpy as np
 
 class Spectrum:
 
-    def __init__(self, n, dm, peak_locations, n_max, nc, k, scale, omega_shift, num_channels, n_max_s, **kwargs):
+    def __init__(self, n, dm, peak_locations, n_max, num_channels, scale, omega_shift, n_max_s, **kwargs):
         self.n = n
         self.dm = dm
         self.peak_locations = peak_locations
         self.n_max = n_max
         self.n_max_s = n_max_s
-        self.nc = nc
-        self.k = k
+        self.num_channels = num_channels
         self.scale = scale
         self.omega_shift = omega_shift
         self.num_channels = num_channels

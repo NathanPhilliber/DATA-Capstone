@@ -9,20 +9,22 @@ import os
 class SpectraGenerator:
 
     DEFAULT_N_MAX = 5.0
+    DEFAULT_N_MAX_S = 5.0
     DEFAULT_NC = 10.0
-    DEFAULT_K = 1.0
     DEFAULT_SCALE = 1.0
     DEFAULT_OMEGA_SHIFT = 10.0
+    DEFAULT_DG = 0.5
+    DEFAULT_DGS = 1.8
 
-    def __init__(self, n_max=DEFAULT_N_MAX, n_max_s=5.0, nc=DEFAULT_NC, k=DEFAULT_K, scale=DEFAULT_SCALE,
-                 omega_shift=DEFAULT_OMEGA_SHIFT):
+    def __init__(self, n_max=DEFAULT_N_MAX, n_max_s=DEFAULT_N_MAX_S, nc=DEFAULT_NC, scale=DEFAULT_SCALE,
+                 omega_shift=DEFAULT_OMEGA_SHIFT, dg=DEFAULT_DG, dgs=DEFAULT_DGS):
         self.n_max = float(n_max)
         self.n_max_s = float(n_max_s)
-        self.nc = float(nc)
-        self.k = float(k)
-        self.num_channels = float(self.nc * self.k)
+        self.num_channels = float(nc)
         self.scale = float(scale)
         self.omega_shift = float(omega_shift)
+        self.dg = dg
+        self.dgs = dgs
 
         os.chdir(GEN_DIR)
         self.engine = matlab.engine.start_matlab()
@@ -30,8 +32,9 @@ class SpectraGenerator:
     def generate_spectrum(self):
 
         n, dm, peak_locations = self.engine.spectra_generator_simple(float(self.n_max), float(self.n_max_s),
-                                                                     float(self.nc), float(self.k), float(self.scale),
-                                                                     float(self.omega_shift), nargout=3)
+                                                                     float(self.num_channels), float(self.scale),
+                                                                     float(self.omega_shift), float(self.dg),
+                                                                     float(self.dgs), nargout=3)
         dm = [list(d) for d in dm]
         if type(peak_locations) == float:
             peak_locations = list([peak_locations])
