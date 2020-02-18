@@ -72,7 +72,7 @@ for k=1:K %number of subplots
         offset=offset+1;
     peakLocations=(omega-Omega(range(1)))./(Omega(range(end))-Omega(range(1)));
     end
-    
+
 end
 
 
