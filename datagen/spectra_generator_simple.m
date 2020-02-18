@@ -30,8 +30,8 @@ AmpS=zeros(1,NS);%shellmodes amplitudes
 phase0S=2*pi*rand(nc.*K,NS);%shellmodes phases
 
 % ASK ABOUT SHELLMODE AMPLITUDES.
-% Amp0S=rand(nc.*K,NS)./5;   %shellmodes amplitudes: the scale of the liquid modes divided by a factor >>1
-Amp0S=1.0/5.0;
+Amp0S=rand(nc.*K,NS)./5;   %shellmodes amplitudes: the scale of the liquid modes divided by a factor >>1
+%Amp0S=1.0/5.0;
 
 omega_res=1000 * omegaShift; % resolution in angular frequency domain
 Omegai=0;
