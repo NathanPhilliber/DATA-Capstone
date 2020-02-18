@@ -11,15 +11,15 @@ MAX_REC_SHARD_SIZE = 10000
 
 @click.command()
 @click.option('--name', prompt='Spectra are stored in this directory. ')
-@click.option('--num-instances', default=10000, help='Number of instances to create. ')
-@click.option('--shard-size', default=0, help='How many spectra to put in each shard (0 = no shard). ')
-@click.option('--num-channels', prompt=f'Number of channels to generate (default={SpectraGenerator.DEFAULT_NC}): ', default=SpectraGenerator.DEFAULT_NC)
-@click.option('--n-max', prompt=f'Maximum number of modes (default={SpectraGenerator.DEFAULT_N_MAX}): ', default=SpectraGenerator.DEFAULT_N_MAX)
-@click.option('--n-max-s', prompt=f'Maximum number of shell peaks (default={SpectraGenerator.DEFAULT_N_MAX_S}): ', default=SpectraGenerator.DEFAULT_N_MAX_S)
-@click.option('--scale', prompt=f'Scale or width of window (default={SpectraGenerator.DEFAULT_SCALE}): ', default=SpectraGenerator.DEFAULT_SCALE)
-@click.option('--omega-shift', prompt=f'Omega Shift (default={SpectraGenerator.DEFAULT_N_MAX}): ', default=SpectraGenerator.DEFAULT_N_MAX)
-@click.option('--dg', prompt=f'Variation of Gamma. (default={SpectraGenerator.DEFAULT_DG}): ', default=SpectraGenerator.DEFAULT_DG)
-@click.option('--dgs', prompt=f'Variation of Gamma for shell modes. (default={SpectraGenerator.DEFAULT_DGS}): ', default=SpectraGenerator.DEFAULT_DGS)
+@click.option('--num-instances', type=int, default=10000, prompt='Number of instances to create')
+@click.option('--shard-size', type=int, default=0, prompt='How many spectra to put in each shard (0 = no shard)')
+@click.option('--num-channels', type=float, prompt=f'Number of channels to generate', default=SpectraGenerator.DEFAULT_NC)
+@click.option('--n-max', type=float, prompt=f'Maximum number of modes', default=SpectraGenerator.DEFAULT_N_MAX)
+@click.option('--n-max-s', type=float, prompt=f'Maximum number of shell peaks', default=SpectraGenerator.DEFAULT_N_MAX_S)
+@click.option('--scale', type=float, prompt=f'Scale or width of window', default=SpectraGenerator.DEFAULT_SCALE)
+@click.option('--omega-shift', type=float, prompt=f'Omega Shift', default=SpectraGenerator.DEFAULT_OMEGA_SHIFT)
+@click.option('--dg', type=float, prompt=f'Variation of Gamma', default=SpectraGenerator.DEFAULT_DG)
+@click.option('--dgs', type=float, prompt=f'Variation of Gamma for shell modes) ', default=SpectraGenerator.DEFAULT_DGS)
 def main(name, num_instances, shard_size, num_channels, n_max, n_max_s, scale, omega_shift, dg, dgs):
 
     # Setup data directory
