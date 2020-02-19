@@ -14,10 +14,50 @@ GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 
+@click.group()
 def main():
-    train_new_model()
+    pass
 
 
+@main.command(name="continue", help="Continue training an existing run")
+def continue_train_model():
+    click.clear()
+    print("Train Existing Model Setup\n")
+
+    module_tups = get_modules(NETWORKS_DIR)
+    model_selection, class_name = prompt_model_selection(module_tups)
+    module, package_name = module_tups[model_selection]
+    model_class = getattr(module, class_name)
+
+    result_dir = prompt_result_selection(class_name)
+
+    result_info = json.load(open(os.path.join(result_dir, TRAIN_INFO_FILENAME), "rb"))
+    dataset_name = result_info["dataset_name"]
+    dataset_config = json.load(open(os.path.join(DATA_DIR, dataset_name, DATAGEN_CONFIG), "r"))
+
+    n_epochs = prompt_num_epochs()
+
+    model = model_class(dataset_config["num_channels"], 1001, 5)
+    model.persist(os.path.basename(result_dir))
+
+    use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
+    spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, use_generator=use_generator)
+
+    if use_generator:
+        print("\nUsing fit generator.\n")
+        X_test, y_test = spectra_pp.transform_test(encoded=True)
+        model.fit_generator(spectra_pp, spectra_pp.datagen_config["num_instances"], X_test,
+                            y_test, batch_size=model.batch_size, epochs=n_epochs, encoded=True)
+
+    else:
+        X_train, y_train, X_test, y_test = spectra_pp.transform(encoded=True)
+        model.fit(X_train, y_train, X_test, y_test, batch_size=model.batch_size, epochs=n_epochs)
+
+    save_loc = model.save(class_name, dataset_name)
+    print(f"Saved model to {to_local_path(save_loc)}")
+
+
+@main.command(name="new", help="Train a new model")
 def train_new_model():
     click.clear()
     print("Train New Model Setup\n")
@@ -53,7 +93,7 @@ def train_new_model():
         model.fit(X_train, y_train, X_test, y_test, batch_size=batch_size, epochs=n_epochs,
                   compile_dict=baseline_model_compile_dict)
 
-    save_loc = model.save(class_name)
+    save_loc = model.save(class_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")
 
 
@@ -97,6 +137,19 @@ def prompt_model_selection(module_tups):
     selection = int(input("\nSelect model to run: "))
 
     return module_indices[selection], names[selection]
+
+
+def prompt_result_selection(class_name):
+    result_dirs = os.listdir(MODEL_RES_DIR)
+    result_dirs = sorted([result_dir for result_dir in result_dirs if class_name == os.path.basename(result_dir).split(".")[0]])
+
+    prefix = "  "
+    print("Found Existing Models:")
+    for dir_i, result_dir in enumerate(result_dirs):
+        print(f"  {dir_i:3}:  {result_dir}")
+
+    selection = int(input("\nSelect model to train: "))
+    return os.path.join(MODEL_RES_DIR, result_dirs[selection])
 
 
 def get_classes(module, package_name):
