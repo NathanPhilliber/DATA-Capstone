@@ -1,4 +1,5 @@
 from utils import *
+from comet_ml import Experiment
 import os
 import inspect
 import importlib
@@ -12,6 +13,10 @@ import tensorflow as tf
 
 GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
 tf.logging.set_verbosity(tf.logging.ERROR)
+
+exp = Experiment(
+    api_key=COMET_KEY,
+    project_name='data-capstone-nasa')
 
 
 @click.group()
@@ -69,24 +74,29 @@ def train_new_model():
 
     dataset_name = prompt_dataset_selection()
     dataset_config = json.load(open(os.path.join(DATA_DIR, dataset_name, DATAGEN_CONFIG), "r"))
+    exp.log_parameters(dataset_config)
 
     n_epochs = prompt_num_epochs()
     batch_size = prompt_batch_size()
 
     model = model_class(dataset_config["num_channels"], 1001, 5)
+
+
     use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
     spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, use_generator=use_generator)
 
     baseline_model_compile_dict = {'optimizer': 'adam',
                                    'loss': 'categorical_crossentropy',
                                    'metrics': ['accuracy', 'mae', 'mse']}
-
+    print(model.keras_model.summary())
     if use_generator:
         print("\nUsing fit generator.\n")
         X_test, y_test = spectra_pp.transform_test(encoded=True)
         model.fit_generator(spectra_pp, spectra_pp.datagen_config["num_instances"], X_test,
                             y_test, batch_size=batch_size, epochs=n_epochs,
                             compile_dict=baseline_model_compile_dict, encoded=True)
+        exp.log_parameters(model.get_info_dict())
+        print(model.test_results)
 
     else:
         X_train, y_train, X_test, y_test = spectra_pp.transform(encoded=True)

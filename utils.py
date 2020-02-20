@@ -16,6 +16,7 @@ DATASET_FILE_TYPE = "pkl"
 DATAGEN_CONFIG = "gen_info.json"
 WEIGHTS_FILENAME = "weights.h5"
 TRAIN_INFO_FILENAME = "info.json"
+COMET_KEY = "rKj0YN2SYHxxZ5dYvS3WJ1jkz"
 
 
 def to_local_path(path):
