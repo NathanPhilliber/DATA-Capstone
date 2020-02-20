@@ -20,6 +20,15 @@ class BaseModel(ABC):
         self.epochs = 0
         self.validation_size = None
         self.history = None
+        self.preds = None
+
+    def log_model_performance(self, X_test, y_test, batch_size, epochs, validation_size=0.20):
+        self.batch_size = batch_size
+        self.epochs += epochs
+        self.validation_size = validation_size
+        self.evaluate(X_test, y_test)
+        self.history = BaseModel._merge_histories(self.history, self.get_model_history())
+        self.preds = self.get_preds(X_test, y_test)
 
     def fit(self, X_train, y_train, X_test, y_test, batch_size, epochs, compile_dict=None, validation_size=0.20):
         if compile_dict is not None:
@@ -27,11 +36,7 @@ class BaseModel(ABC):
             self.compile_dict = compile_dict
 
         self.keras_model.fit(X_train, y_train, validation_split=validation_size, epochs=epochs, batch_size=batch_size)
-        self.batch_size = batch_size
-        self.epochs += epochs
-        self.validation_size = validation_size
-        self.evaluate(X_test, y_test)
-        self.history = BaseModel._merge_histories(self.history, self.get_model_history())
+        self.log_model_performance(X_test, y_test, batch_size, epochs, validation_size)
 
     def fit_generator(self, preprocessor, train_size, X_test, y_test, batch_size, epochs, compile_dict=None,
                       validation_size=0.20, encoded=False):
@@ -43,12 +48,7 @@ class BaseModel(ABC):
         self.keras_model.fit_generator(preprocessor.train_generator(batch_size=batch_size, encoded=encoded),
                                        steps_per_epoch=train_size//batch_size, validation_data=(X_test, y_test),
                                        epochs=epochs)
-        self.batch_size = batch_size
-        self.epochs += epochs
-        self.validation_size = validation_size
-        self.evaluate(X_test, y_test)
-        self.history = BaseModel._merge_histories(self.history, self.get_model_history())
-        self.preds = self.get_preds(X_test, y_test)
+        self.log_model_performance(X_test, y_test, batch_size, epochs, validation_size)
 
     def compile(self, compile_dict):
         self.keras_model.compile(**compile_dict)
@@ -70,7 +70,6 @@ class BaseModel(ABC):
         preds_n = [np.argmax(s) + 1 for s in preds]
         y_true = [np.argmax(s) + 1 for s in y_test]
         return y_true, preds_n
-
 
     def get_info_dict(self):
         params = dict()
