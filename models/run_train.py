@@ -14,10 +14,6 @@ import tensorflow as tf
 GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
 tf.logging.set_verbosity(tf.logging.ERROR)
 
-exp = Experiment(
-    api_key=COMET_KEY,
-    project_name='data-capstone-nasa')
-
 
 @click.group()
 def main():
@@ -25,9 +21,12 @@ def main():
 
 
 @main.command(name="continue", help="Continue training an existing run")
-def continue_train_model():
+@click.option("--comet-name", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
+def continue_train_model(comet_name):
     click.clear()
     print("Train Existing Model Setup\n")
+
+    exp = create_comet_exp(comet_name)
 
     module_tups = get_modules(NETWORKS_DIR)
     model_selection, class_name = prompt_model_selection(module_tups)
@@ -39,6 +38,7 @@ def continue_train_model():
     result_info = json.load(open(os.path.join(result_dir, TRAIN_INFO_FILENAME), "rb"))
     dataset_name = result_info["dataset_name"]
     dataset_config = json.load(open(os.path.join(DATA_DIR, dataset_name, DATAGEN_CONFIG), "r"))
+    exp.log_parameters(dataset_config)
 
     n_epochs = prompt_num_epochs()
 
@@ -63,9 +63,12 @@ def continue_train_model():
 
 
 @main.command(name="new", help="Train a new model")
-def train_new_model():
+@click.option("--comet-name", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
+def train_new_model(comet_name):
     click.clear()
     print("Train New Model Setup\n")
+
+    exp = create_comet_exp(comet_name)
 
     module_tups = get_modules(NETWORKS_DIR)
     model_selection, class_name = prompt_model_selection(module_tups)
@@ -105,6 +108,15 @@ def train_new_model():
 
     save_loc = model.save(class_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")
+
+
+def create_comet_exp(name):
+    exp = Experiment(
+        api_key=COMET_KEY,
+        project_name='data-capstone-nasa')
+    exp.set_name(name)
+    return exp
+
 
 
 def prompt_batch_size():
