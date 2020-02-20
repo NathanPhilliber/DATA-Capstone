@@ -48,6 +48,7 @@ class BaseModel(ABC):
         self.validation_size = validation_size
         self.evaluate(X_test, y_test)
         self.history = BaseModel._merge_histories(self.history, self.get_model_history())
+        self.preds = self.get_preds(X_test, y_test)
 
     def compile(self, compile_dict):
         self.keras_model.compile(**compile_dict)
@@ -63,6 +64,13 @@ class BaseModel(ABC):
 
     def evaluate(self, X_test, y_test):
         self.test_results = self.keras_model.evaluate(X_test, y_test)
+
+    def get_preds(self, X_test, y_test):
+        preds = self.keras_model.predict(X_test)
+        preds_n = [np.argmax(s) + 1 for s in preds]
+        y_true = [np.argmax(s) + 1 for s in y_test]
+        return y_true, preds_n
+
 
     def get_info_dict(self):
         params = dict()
