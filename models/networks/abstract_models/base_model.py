@@ -108,7 +108,6 @@ class BaseModel(ABC):
         self.epochs = info['epochs']
         self.history = info['history']
         self.test_results = info['test_results']
-
         self.compile(self.compile_dict)
         self.keras_model.load_weights(weights_path)
 
