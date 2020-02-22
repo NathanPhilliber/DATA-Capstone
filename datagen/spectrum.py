@@ -6,7 +6,7 @@ import numpy as np
 
 class Spectrum:
 
-    def __init__(self, n, dm, peak_locations, n_max, num_channels, scale, omega_shift, n_max_s, **kwargs):
+    def __init__(self, n, dm, dg, dgs, peak_locations, n_max, num_channels, scale, omega_shift, n_max_s, **kwargs):
         self.n = n
         self.dm = dm
         self.peak_locations = peak_locations
@@ -16,6 +16,11 @@ class Spectrum:
         self.scale = scale
         self.omega_shift = omega_shift
         self.num_channels = num_channels
+        self.dg = dg
+        self.dgs = dgs
+
+    def get_num_timesteps(self):
+        return len(self.dm[0])
 
     def plot_channel(self, channel_number):
         sns.lineplot(x=np.linspace(0, 1, len(self.dm[0])), y=self.dm[channel_number])

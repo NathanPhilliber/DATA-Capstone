@@ -7,7 +7,7 @@
 %dG=1.8
 %dGs=1.8
 
-function [N, Dm, peakLocations] = spectra_generator(Nmax, NmaxS, nc, scale, omegaShift, dG, dGs)
+function [N, Dm, peakLocations, omega_res] = spectra_generator(Nmax, NmaxS, nc, scale, omegaShift, dG, dGs)
 cnt=1;
 K=1;
 N=floor(rand*Nmax)+1;

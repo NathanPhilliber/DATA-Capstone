@@ -3,6 +3,7 @@ from abc import ABC
 from abc import abstractmethod
 import json
 from datetime import datetime
+import numpy as np
 
 
 class BaseModel(ABC):
@@ -67,9 +68,7 @@ class BaseModel(ABC):
 
     def get_preds(self, X_test, y_test):
         preds = self.keras_model.predict(X_test)
-        preds_n = [np.argmax(s) + 1 for s in preds]
-        y_true = [np.argmax(s) + 1 for s in y_test]
-        return y_true, preds_n
+        return y_test, preds
 
     def get_info_dict(self):
         params = dict()
@@ -82,10 +81,9 @@ class BaseModel(ABC):
 
     def save(self, class_name, dataset_name, save_dir=None):
         if save_dir is None:
-            save_dir = os.path.join(MODEL_RES_DIR, class_name + "." + str(datetime.now().strftime("%m%d.%H%M")))
+            save_dir = os.path.join(MODEL_RES_DIR, class_name + "_" + dataset_name + "." + str(datetime.now().strftime("%m%d.%H%M")))
 
         try_create_directory(save_dir)
-
         weights_path = os.path.join(save_dir, WEIGHTS_FILENAME)
         info_path = os.path.join(save_dir, TRAIN_INFO_FILENAME)
         self.keras_model.save_weights(weights_path)

@@ -19,7 +19,7 @@ MAX_REC_SHARD_SIZE = 10000
 @click.option('--scale', type=float, prompt=f'Scale or width of window', default=SpectraGenerator.DEFAULT_SCALE)
 @click.option('--omega-shift', type=float, prompt=f'Omega Shift', default=SpectraGenerator.DEFAULT_OMEGA_SHIFT)
 @click.option('--dg', type=float, prompt=f'Variation of Gamma', default=SpectraGenerator.DEFAULT_DG)
-@click.option('--dgs', type=float, prompt=f'Variation of Gamma for shell modes) ', default=SpectraGenerator.DEFAULT_DGS)
+@click.option('--dgs', type=float, prompt=f'Gamma variation of shell modes', default=SpectraGenerator.DEFAULT_DGS)
 def main(name, num_instances, shard_size, num_channels, n_max, n_max_s, scale, omega_shift, dg, dgs):
 
     # Setup data directory

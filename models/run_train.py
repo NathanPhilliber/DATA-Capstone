@@ -10,7 +10,7 @@ from datetime import datetime
 import click
 import tensorflow as tf
 
-
+COMPILE_DICT = {'optimizer': 'adam','loss': 'categorical_crossentropy', 'metrics': ['accuracy', 'mae', 'mse']}
 GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
 tf.logging.set_verbosity(tf.logging.ERROR)
 
@@ -20,31 +20,34 @@ def main():
     pass
 
 
-@main.command(name="continue", help="Continue training an existing run")
-@click.option("--comet-name", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
-def continue_train_model(comet_name):
-    click.clear()
-    print("Train Existing Model Setup\n")
-
-    exp = create_comet_exp(comet_name)
-
+def load_model(num_channels, n_max, num_timesteps):
     module_tups = get_modules(NETWORKS_DIR)
     model_selection, class_name = prompt_model_selection(module_tups)
     module, package_name = module_tups[model_selection]
     model_class = getattr(module, class_name)
+    model = model_class(num_channels, num_timesteps, n_max)
+    return model, class_name
 
-    result_dir = prompt_result_selection(class_name)
 
-    result_info = json.load(open(os.path.join(result_dir, TRAIN_INFO_FILENAME), "rb"))
-    dataset_name = result_info["dataset_name"]
+def load_dataset_info():
+    dataset_name = prompt_dataset_selection()
     dataset_config = json.load(open(os.path.join(DATA_DIR, dataset_name, DATAGEN_CONFIG), "r"))
-    exp.log_parameters(dataset_config)
+    return dataset_name, dataset_config
 
-    n_epochs = prompt_num_epochs()
 
-    model = model_class(dataset_config["num_channels"], 1001, 5)
-    model.persist(os.path.basename(result_dir))
+def load_data(dataset_name, dataset_config):
+    use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
+    spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, use_generator=use_generator)
+    return spectra_pp
 
+
+def set_result_dir(class_name):
+    result_dir = prompt_result_selection(class_name)
+    result_info = json.load(open(os.path.join(result_dir, TRAIN_INFO_FILENAME), "rb"))
+    return result_dir, result_info
+
+
+def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=None):
     use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
     spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, use_generator=use_generator)
 
@@ -52,11 +55,37 @@ def continue_train_model(comet_name):
         print("\nUsing fit generator.\n")
         X_test, y_test = spectra_pp.transform_test(encoded=True)
         model.fit_generator(spectra_pp, spectra_pp.datagen_config["num_instances"], X_test,
-                            y_test, batch_size=model.batch_size, epochs=n_epochs, encoded=True)
+                            y_test, batch_size=batch_size, epochs=n_epochs, encoded=True,
+                            compile_dict=compile_dict)
 
     else:
         X_train, y_train, X_test, y_test = spectra_pp.transform(encoded=True)
-        model.fit(X_train, y_train, X_test, y_test, batch_size=model.batch_size, epochs=n_epochs)
+        model.fit(X_train, y_train, X_test, y_test, batch_size=batch_size, epochs=n_epochs,
+                  compile_dict=compile_dict)
+    return model
+
+
+def log_data_attributes(experiment, dataset_config):
+    for key, value in dataset_config.items():
+        experiment.log_parameter("SPECTRUM_" + key, value)
+
+
+@main.command(name="continue", help="Continue training an existing run")
+@click.option("--comet-name", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
+def continue_train_model(comet_name):
+    click.clear()
+    print("Train Existing Model Setup\n")
+
+    exp = create_comet_exp(comet_name)
+    dataset_name, dataset_config = load_dataset_info()
+    model, class_name = load_model(dataset_config['num_channels'], dataset_config['n_max'], dataset_config['num_timesteps'])
+    result_dir, result_info = set_result_dir(class_name)
+    log_data_attributes(exp, dataset_config)
+    exp.log_asset('datagen/spectra_generator.m')
+
+    model.persist(os.path.basename(result_dir))
+    n_epochs = prompt_num_epochs()
+    model = train_model(model, dataset_name, dataset_config, model.batch_size, n_epochs)
 
     save_loc = model.save(class_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")
@@ -69,42 +98,18 @@ def train_new_model(comet_name):
     print("Train New Model Setup\n")
 
     exp = create_comet_exp(comet_name)
-
-    module_tups = get_modules(NETWORKS_DIR)
-    model_selection, class_name = prompt_model_selection(module_tups)
-    module, package_name = module_tups[model_selection]
-    model_class = getattr(module, class_name)
-
-    dataset_name = prompt_dataset_selection()
-    dataset_config = json.load(open(os.path.join(DATA_DIR, dataset_name, DATAGEN_CONFIG), "r"))
-    exp.log_parameters(dataset_config)
+    exp.log_asset('datagen/spectra_generator.m')
+    dataset_name, dataset_config = load_dataset_info()
+    model, class_name = load_model(dataset_config['num_channels'], dataset_config['n_max'], dataset_config['num_timesteps'])
+    log_data_attributes(exp, dataset_config)
 
     n_epochs = prompt_num_epochs()
     batch_size = prompt_batch_size()
+    model = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=COMPILE_DICT)
+    exp.log_parameters(model.get_info_dict())
 
-    model = model_class(dataset_config["num_channels"], 1001, 5)
-
-
-    use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
-    spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, use_generator=use_generator)
-
-    baseline_model_compile_dict = {'optimizer': 'adam',
-                                   'loss': 'categorical_crossentropy',
-                                   'metrics': ['accuracy', 'mae', 'mse']}
-    print(model.keras_model.summary())
-    if use_generator:
-        print("\nUsing fit generator.\n")
-        X_test, y_test = spectra_pp.transform_test(encoded=True)
-        model.fit_generator(spectra_pp, spectra_pp.datagen_config["num_instances"], X_test,
-                            y_test, batch_size=batch_size, epochs=n_epochs,
-                            compile_dict=baseline_model_compile_dict, encoded=True)
-        exp.log_parameters(model.get_info_dict())
-        print(model.test_results)
-
-    else:
-        X_train, y_train, X_test, y_test = spectra_pp.transform(encoded=True)
-        model.fit(X_train, y_train, X_test, y_test, batch_size=batch_size, epochs=n_epochs,
-                  compile_dict=baseline_model_compile_dict)
+    y_true, y_pred = model.preds
+    exp.log_confusion_matrix(y_true, y_pred)
 
     save_loc = model.save(class_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")
@@ -116,7 +121,6 @@ def create_comet_exp(name):
         project_name='data-capstone-nasa')
     exp.set_name(name)
     return exp
-
 
 
 def prompt_batch_size():
@@ -163,7 +167,7 @@ def prompt_model_selection(module_tups):
 
 def prompt_result_selection(class_name):
     result_dirs = os.listdir(MODEL_RES_DIR)
-    result_dirs = sorted([result_dir for result_dir in result_dirs if class_name == os.path.basename(result_dir).split(".")[0]])
+    result_dirs = sorted([result_dir for result_dir in result_dirs if class_name == os.path.basename(result_dir).split("_")[0]])
 
     prefix = "  "
     print("Found Existing Models:")

@@ -7,7 +7,6 @@ import os
 
 
 class SpectraGenerator:
-
     DEFAULT_N_MAX = 5.0
     DEFAULT_N_MAX_S = 5.0
     DEFAULT_NC = 10.0
@@ -25,6 +24,7 @@ class SpectraGenerator:
         self.omega_shift = float(omega_shift)
         self.dg = dg
         self.dgs = dgs
+        self.num_timesteps = None
 
         os.chdir(GEN_DIR)
         self.engine = matlab.engine.start_matlab()
@@ -43,13 +43,21 @@ class SpectraGenerator:
         spectrum = Spectrum(n=n, dm=dm, peak_locations=peak_locations, **self.__dict__)
         return spectrum
 
+    def get_num_timesteps(self, spectrum):
+        return spectrum.get_num_timesteps()
+
     def generate_spectra(self, n_instances):
         return [self.generate_spectrum() for i in range(n_instances)]
 
     def generate_spectra_json(self, n_instances):
         spectra = self.generate_spectra(n_instances)
+        # TODO: Fix this.
+        num_timesteps = self.get_num_timesteps(spectra[0])
+        self.num_timesteps = num_timesteps
         spectra_json = [spectrum.__dict__ for spectrum in spectra]
         return spectra_json
+
+
 
     @staticmethod
     def save_spectra(spectra_json, filename, save_dir="."):
@@ -68,6 +76,7 @@ class SpectraGenerator:
 
         del spectra_generator_dict['engine']
         spectra_generator_dict['num_instances'] = num_instances
+        spectra_generator_dict['num_timesteps'] = self.num_timesteps
 
         info_filename = os.path.join(directory, filename)
         with open(info_filename, 'w') as f:
