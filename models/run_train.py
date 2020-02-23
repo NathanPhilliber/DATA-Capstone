@@ -1,5 +1,5 @@
 from utils import *
-from comet_ml import Experiment
+from comet_ml import Experiment, Optimizer
 import os
 import inspect
 import importlib
@@ -11,6 +11,9 @@ import click
 import tensorflow as tf
 
 COMPILE_DICT = {'optimizer': 'adam','loss': 'categorical_crossentropy', 'metrics': ['accuracy', 'mae', 'mse']}
+PROJECT_NAME = 'data-capstone-nasa'
+OPTIMIZE_PARAMS = {'algorithm': 'bayes', 'spec': {'metric': 'loss', 'objective': 'minimize'}}
+
 GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
 tf.logging.set_verbosity(tf.logging.ERROR)
 
@@ -47,6 +50,19 @@ def set_result_dir(class_name):
     return result_dir, result_info
 
 
+def initialize_model():
+    dataset_name, dataset_config = load_dataset_info()
+    model, class_name = load_model(dataset_config['num_channels'], dataset_config['n_max'], dataset_config['num_timesteps'])
+    return dataset_name, dataset_config, model, class_name
+
+
+def initialize_comet(comet_name, dataset_config):
+    exp = create_comet_exp(comet_name)
+    log_data_attributes(exp, dataset_config)
+    exp.log_asset('datagen/spectra_generator.m')
+    return exp
+
+
 def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=None):
     use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
     spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, use_generator=use_generator)
@@ -76,12 +92,9 @@ def continue_train_model(comet_name):
     click.clear()
     print("Train Existing Model Setup\n")
 
-    exp = create_comet_exp(comet_name)
-    dataset_name, dataset_config = load_dataset_info()
-    model, class_name = load_model(dataset_config['num_channels'], dataset_config['n_max'], dataset_config['num_timesteps'])
+    dataset_name, dataset_config, model, class_name = initialize_model()
+    exp = initialize_comet(comet_name, dataset_config)
     result_dir, result_info = set_result_dir(class_name)
-    log_data_attributes(exp, dataset_config)
-    exp.log_asset('datagen/spectra_generator.m')
 
     model.persist(os.path.basename(result_dir))
     n_epochs = prompt_num_epochs()
@@ -97,11 +110,8 @@ def train_new_model(comet_name):
     click.clear()
     print("Train New Model Setup\n")
 
-    exp = create_comet_exp(comet_name)
-    exp.log_asset('datagen/spectra_generator.m')
-    dataset_name, dataset_config = load_dataset_info()
-    model, class_name = load_model(dataset_config['num_channels'], dataset_config['n_max'], dataset_config['num_timesteps'])
-    log_data_attributes(exp, dataset_config)
+    dataset_name, dataset_config, model, class_name = initialize_model()
+    exp = initialize_comet(comet_name, dataset_config)
 
     n_epochs = prompt_num_epochs()
     batch_size = prompt_batch_size()
@@ -115,10 +125,38 @@ def train_new_model(comet_name):
     print(f"Saved model to {to_local_path(save_loc)}")
 
 
+def get_params_range(model):
+    model_params = OPTIMIZE_PARAMS
+    model_params['parameters'] = {k: v for k, v in model.params_range.items() if k not in set('default')}
+    return model_params
+
+
+@main.command(name="optimize", help="Optimize model")
+@click.option("--comet-name", prompt="What would you like to call these experiments in comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
+@click.option("--max-n", prompt="Maximum number of experiments: ", default=0)
+def optimize(comet_name, max_n):
+    dataset_name, dataset_config, model, class_name = initialize_model()
+    n_epochs = prompt_num_epochs()
+    batch_size = prompt_batch_size()
+    params_range = get_params_range(model)
+    params_range['spec']['maxCombo'] = int(max_n)
+    optimizer = Optimizer(params_range, api_key=COMET_KEY)
+
+    for experiment in optimizer.get_experiments(project_name=PROJECT_NAME):
+        experiment.set_name(comet_name)
+        experiment.add_tag("optimizer_experiment")
+        model_exp = model
+        p = {k: experiment.get_parameter(k) for k in params_range['parameters'].keys()}
+        model_exp.params = p
+        model_exp = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=COMPILE_DICT)
+        loss = model_exp.test_results[0]
+        experiment.log_metric("loss", loss)
+
+
 def create_comet_exp(name):
     exp = Experiment(
         api_key=COMET_KEY,
-        project_name='data-capstone-nasa')
+        project_name=PROJECT_NAME)
     exp.set_name(name)
     return exp
 

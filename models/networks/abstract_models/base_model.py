@@ -9,12 +9,20 @@ import numpy as np
 class BaseModel(ABC):
     """ Abstract class for our networks to extend. """
 
+    def set_params_range(self):
+        pass
+
     @abstractmethod
-    def build_model(self, num_channels, num_timesteps, output_shape):
+    def build_model(self, num_channels, num_timesteps, output_shape, params):
         pass
 
     def __init__(self, num_channels, num_timesteps, output_shape):
-        self.keras_model = self.build_model(int(num_channels), int(num_timesteps), int(output_shape))
+        self.params_range = self.set_params_range()
+        self.params = None #TODO: set this as default?
+        self.keras_model = None
+        self.num_channels = num_channels
+        self.num_timesteps = num_timesteps
+        self.output_shape = output_shape
         self.test_results = None
         self.compile_dict = None
         self.batch_size = None
@@ -31,7 +39,16 @@ class BaseModel(ABC):
         self.history = BaseModel._merge_histories(self.history, self.get_model_history())
         self.preds = self.get_preds(X_test, y_test)
 
+    def get_default_params(self):
+        return {k: v['default'] for k, v in self.params_range.items()}
+
     def fit(self, X_train, y_train, X_test, y_test, batch_size, epochs, compile_dict=None, validation_size=0.20):
+        if self.params is None:
+            self.params = self.get_default_params()
+            print(f"Using default parameters: {self.params}")
+
+        self.keras_model = self.build_model(int(self.num_channels), int(self.num_timesteps), int(self.output_shape), self.params)
+
         if compile_dict is not None:
             self.compile(compile_dict)
             self.compile_dict = compile_dict
@@ -41,6 +58,7 @@ class BaseModel(ABC):
 
     def fit_generator(self, preprocessor, train_size, X_test, y_test, batch_size, epochs, compile_dict=None,
                       validation_size=0.20, encoded=False):
+        self.keras_model = self.build_model(int(self.num_channels), int(self.num_timesteps), int(self.output_shape), self.params)
 
         if compile_dict is not None:
             self.compile(compile_dict)
