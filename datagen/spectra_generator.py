@@ -31,10 +31,10 @@ class SpectraGenerator:
 
     def generate_spectrum(self):
 
-        n, dm, peak_locations = self.engine.spectra_generator_simple(float(self.n_max), float(self.n_max_s),
-                                                                     float(self.num_channels), float(self.scale),
-                                                                     float(self.omega_shift), float(self.dg),
-                                                                     float(self.dgs), nargout=3)
+        n, dm, peak_locations = self.engine.spectra_generator(float(self.n_max), float(self.n_max_s),
+                                                              float(self.num_channels), float(self.scale),
+                                                              float(self.omega_shift), float(self.dg),
+                                                              float(self.dgs), nargout=3)
         dm = [list(d) for d in dm]
         if type(peak_locations) == float:
             peak_locations = list([peak_locations])

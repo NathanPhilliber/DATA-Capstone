@@ -5,9 +5,6 @@ from keras.layers import Dense, Conv2D, Flatten, LSTM, TimeDistributed, MaxPooli
 from keras.optimizers import SGD, Adam
 from models.networks.abstract_models.attention import Attention
 from models.networks.abstract_models.base_model import BaseModel
-from hyperas.distributions import uniform, normal, choice
-from hyperopt import Trials, STATUS_OK, tpe
-from hyperas import optim
 
 
 class GRUModel1(BaseModel):
@@ -48,7 +45,7 @@ class LSTMModel1(BaseModel):
 
     def build_model(self, num_channels, num_timesteps, output_shape, params):
         model = Sequential()
-        model.add(BatchNormalization(params['momentum'], input_shape=(num_timesteps, num_channels)))
+        model.add(BatchNormalization(momentum=params['momentum'], input_shape=(num_timesteps, num_channels)))
         model.add(Bidirectional(CuDNNLSTM(params['lstm_size_1'], return_sequences=True)))
         model.add(Bidirectional(CuDNNLSTM(params['lstm_size_2'], return_sequences=True)))
         model.add(Attention(num_timesteps))
