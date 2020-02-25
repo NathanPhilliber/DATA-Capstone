@@ -4,6 +4,7 @@ from abc import abstractmethod
 import json
 from datetime import datetime
 import numpy as np
+from comet_ml import Experiment, Optimizer, ExistingExperiment
 
 
 class BaseModel(ABC):
@@ -16,7 +17,7 @@ class BaseModel(ABC):
     def build_model(self, num_channels, num_timesteps, output_shape, params):
         pass
 
-    def __init__(self, num_channels, num_timesteps, output_shape):
+    def __init__(self, num_channels, num_timesteps, output_shape, use_comet=True):
         self.params_range = self.set_params_range()
         self.params = None #TODO: set this as default?
         self.keras_model = None
@@ -30,6 +31,8 @@ class BaseModel(ABC):
         self.validation_size = None
         self.history = None
         self.preds = None
+        self.experiment = None
+
 
     def log_model_performance(self, X_test, y_test, batch_size, epochs, validation_size=0.20):
         self.batch_size = batch_size
@@ -114,6 +117,7 @@ class BaseModel(ABC):
         info_dict = self.get_info_dict()
         info_dict["class_name"] = class_name
         info_dict["dataset_name"] = dataset_name
+        info_dict["comet_exp_key"] = self.experiment.get_key()
         json.dump(info_dict, open(info_path, "w"))
 
         return save_dir
@@ -131,6 +135,7 @@ class BaseModel(ABC):
         self.test_results = info['test_results']
         self.compile(self.compile_dict)
         self.keras_model.load_weights(weights_path)
+        self.load_comet_continue(info["comet_exp_key"])
 
     @staticmethod
     def _merge_histories(hist1, hist2):
@@ -148,3 +153,16 @@ class BaseModel(ABC):
             hist[key] = hist1[key] + hist2[key]
 
         return hist
+
+    def load_comet_new(self, comet_name, dataset_config):
+        self.experiment = Experiment(api_key=COMET_KEY, project_name=PROJECT_NAME)
+        self.experiment.set_name(comet_name)
+        self.log_data_attributes(dataset_config)
+        self.experiment.log_asset('datagen/spectra_generator.m')
+
+    def load_comet_continue(self, exp_key):
+        self.experiment = ExistingExperiment(api_key=COMET_KEY, previous_experiment=exp_key)
+
+    def log_data_attributes(self, dataset_config):
+        for key, value in dataset_config.items():
+            self.experiment.log_parameter("SPECTRUM_" + key, value)

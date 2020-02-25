@@ -1,5 +1,4 @@
 from utils import *
-from comet_ml import Experiment, Optimizer
 import os
 import inspect
 import importlib
@@ -9,9 +8,9 @@ from datagen.spectra_loader import SpectraLoader
 from datetime import datetime
 import click
 import tensorflow as tf
+from comet_ml import Optimizer
 
 COMPILE_DICT = {'optimizer': 'adam','loss': 'categorical_crossentropy', 'metrics': ['accuracy', 'mae', 'mse']}
-PROJECT_NAME = 'data-capstone-nasa'
 OPTIMIZE_PARAMS = {'algorithm': 'bayes', 'spec': {'metric': 'loss', 'objective': 'minimize'}}
 
 GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
@@ -56,13 +55,6 @@ def initialize_model():
     return dataset_name, dataset_config, model, class_name
 
 
-def initialize_comet(comet_name, dataset_config):
-    exp = create_comet_exp(comet_name)
-    log_data_attributes(exp, dataset_config)
-    exp.log_asset('datagen/spectra_generator.m')
-    return exp
-
-
 def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=None):
     use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
     spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, use_generator=use_generator)
@@ -81,11 +73,6 @@ def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compi
     return model
 
 
-def log_data_attributes(experiment, dataset_config):
-    for key, value in dataset_config.items():
-        experiment.log_parameter("SPECTRUM_" + key, value)
-
-
 @main.command(name="continue", help="Continue training an existing run")
 @click.option("--comet-name", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
 def continue_train_model(comet_name):
@@ -93,12 +80,16 @@ def continue_train_model(comet_name):
     print("Train Existing Model Setup\n")
 
     dataset_name, dataset_config, model, class_name = initialize_model()
-    exp = initialize_comet(comet_name, dataset_config)
+    #exp = initialize_comet(comet_name, dataset_config)
     result_dir, result_info = set_result_dir(class_name)
 
     model.persist(os.path.basename(result_dir))
     n_epochs = prompt_num_epochs()
     model = train_model(model, dataset_name, dataset_config, model.batch_size, n_epochs)
+
+    y_true, y_pred = model.preds
+    labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
+    model.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
 
     save_loc = model.save(class_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")
@@ -111,15 +102,18 @@ def train_new_model(comet_name):
     print("Train New Model Setup\n")
 
     dataset_name, dataset_config, model, class_name = initialize_model()
-    exp = initialize_comet(comet_name, dataset_config)
+    model.load_comet_new(comet_name, dataset_config)
+    #exp = initialize_comet(comet_name, dataset_config)
 
     n_epochs = prompt_num_epochs()
     batch_size = prompt_batch_size()
     model = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=COMPILE_DICT)
-    exp.log_parameters(model.get_info_dict())
+    model.experiment.log_parameters(model.get_info_dict())
 
     y_true, y_pred = model.preds
-    exp.log_confusion_matrix(y_true, y_pred)
+    #model.experiment.log_confusion_matrix(y_true, y_pred)
+    labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
+    model.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
 
     save_loc = model.save(class_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")
@@ -151,14 +145,6 @@ def optimize(comet_name, max_n):
         model_exp = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=COMPILE_DICT)
         loss = model_exp.test_results[0]
         experiment.log_metric("loss", loss)
-
-
-def create_comet_exp(name):
-    exp = Experiment(
-        api_key=COMET_KEY,
-        project_name=PROJECT_NAME)
-    exp.set_name(name)
-    return exp
 
 
 def prompt_batch_size():

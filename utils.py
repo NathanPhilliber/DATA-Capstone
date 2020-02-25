@@ -18,6 +18,8 @@ WEIGHTS_FILENAME = "weights.h5"
 TRAIN_INFO_FILENAME = "info.json"
 COMET_KEY = "rKj0YN2SYHxxZ5dYvS3WJ1jkz"
 
+PROJECT_NAME = 'data-capstone-nasa'
+
 
 def to_local_path(path):
     return path.replace(PROJECT_ROOT, "")[len(os.path.sep):]
