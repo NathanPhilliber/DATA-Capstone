@@ -3,12 +3,13 @@ import os
 import inspect
 import importlib
 import json
+from comet_ml import Optimizer
 from models.spectra_preprocessor import SpectraPreprocessor
 from datagen.spectra_loader import SpectraLoader
 from datetime import datetime
 import click
 import tensorflow as tf
-from comet_ml import Optimizer
+
 
 COMPILE_DICT = {'optimizer': 'adam','loss': 'categorical_crossentropy', 'metrics': ['accuracy', 'mae', 'mse']}
 OPTIMIZE_PARAMS = {'algorithm': 'bayes', 'spec': {'metric': 'loss', 'objective': 'minimize'}}
@@ -74,8 +75,7 @@ def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compi
 
 
 @main.command(name="continue", help="Continue training an existing run")
-@click.option("--comet-name", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
-def continue_train_model(comet_name):
+def continue_train_model():
     click.clear()
     print("Train Existing Model Setup\n")
 

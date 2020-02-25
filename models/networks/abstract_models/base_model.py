@@ -1,10 +1,10 @@
 from utils import *
+from comet_ml import Experiment, Optimizer, ExistingExperiment
 from abc import ABC
 from abc import abstractmethod
 import json
 from datetime import datetime
 import numpy as np
-from comet_ml import Experiment, Optimizer, ExistingExperiment
 
 
 class BaseModel(ABC):
@@ -32,7 +32,7 @@ class BaseModel(ABC):
         self.history = None
         self.preds = None
         self.experiment = None
-
+        self.weights_path = None
 
     def log_model_performance(self, X_test, y_test, batch_size, epochs, validation_size=0.20):
         self.batch_size = batch_size
@@ -51,10 +51,14 @@ class BaseModel(ABC):
             print(f"Using default parameters: {self.params}")
 
         self.keras_model = self.build_model(int(self.num_channels), int(self.num_timesteps), int(self.output_shape), self.params)
+        if self.weights_path is not None:
+            self.keras_model.load_weights(self.weights_path)
 
         if compile_dict is not None:
             self.compile(compile_dict)
             self.compile_dict = compile_dict
+        elif self.compile_dict is not None:
+            self.compile(self.compile_dict)
 
         self.keras_model.fit(X_train, y_train, validation_split=validation_size, epochs=epochs, batch_size=batch_size)
         self.log_model_performance(X_test, y_test, batch_size, epochs, validation_size)
@@ -67,10 +71,14 @@ class BaseModel(ABC):
             print(f"Using default parameters: {self.params}")
 
         self.keras_model = self.build_model(int(self.num_channels), int(self.num_timesteps), int(self.output_shape), self.params)
+        if self.weights_path is not None:
+            self.keras_model.load_weights(self.weights_path)
 
         if compile_dict is not None:
             self.compile(compile_dict)
             self.compile_dict = compile_dict
+        elif self.compile_dict is not None:
+            self.compile(self.compile_dict)
 
         self.keras_model.fit_generator(preprocessor.train_generator(batch_size=batch_size, encoded=encoded),
                                        steps_per_epoch=train_size//batch_size, validation_data=(X_test, y_test),
@@ -103,6 +111,7 @@ class BaseModel(ABC):
         params['epochs'] = self.epochs
         params['history'] = BaseModel._merge_histories(self.history, self.get_model_history())
         params['test_results'] = self.test_results
+        params["comet_exp_key"] = self.experiment.get_key()
         return params
 
     def save(self, class_name, dataset_name, save_dir=None):
@@ -117,7 +126,7 @@ class BaseModel(ABC):
         info_dict = self.get_info_dict()
         info_dict["class_name"] = class_name
         info_dict["dataset_name"] = dataset_name
-        info_dict["comet_exp_key"] = self.experiment.get_key()
+
         json.dump(info_dict, open(info_path, "w"))
 
         return save_dir
@@ -133,8 +142,7 @@ class BaseModel(ABC):
         self.epochs = info['epochs']
         self.history = info['history']
         self.test_results = info['test_results']
-        self.compile(self.compile_dict)
-        self.keras_model.load_weights(weights_path)
+        #self.compile(self.compile_dict)
         self.load_comet_continue(info["comet_exp_key"])
 
     @staticmethod
