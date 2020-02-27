@@ -1,8 +1,8 @@
-from keras.layers import Layer
+from tensorflow.keras.layers import Layer
 from tensorflow.keras import backend as K
-from keras import initializers
-from keras import regularizers
-from keras import constraints
+from tensorflow.keras import initializers
+from tensorflow.keras import regularizers
+from tensorflow.keras import constraints
 
 
 class Attention(Layer):
