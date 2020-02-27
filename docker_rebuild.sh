@@ -1,0 +1,1 @@
+sudo docker build . -t nasa/peak_detection:latest

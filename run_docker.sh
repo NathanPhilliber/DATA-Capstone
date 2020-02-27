@@ -1,0 +1,1 @@
+sudo docker run --env PYTHONPATH=$PYTHONPATH:. --gpus all -it --rm -v $PWD:/tmp -w /tmp nasa/peak_detection:latest python "$@"
