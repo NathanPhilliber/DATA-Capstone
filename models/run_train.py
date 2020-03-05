@@ -15,7 +15,7 @@ COMPILE_DICT = {'optimizer': 'adam','loss': 'categorical_crossentropy', 'metrics
 OPTIMIZE_PARAMS = {'algorithm': 'bayes', 'spec': {'metric': 'loss', 'objective': 'minimize'}}
 
 GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
-tf.logging.set_verbosity(tf.logging.ERROR)
+#tf.logging.set_verbosity(tf.logging.ERROR)
 
 
 @click.group()
