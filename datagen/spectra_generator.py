@@ -5,8 +5,6 @@ import pickle
 import json
 import os
 
-NUM_TIMESTEPS = 1001
-
 
 class SpectraGenerator:
     DEFAULT_N_MAX = 5.0
@@ -77,8 +75,8 @@ class SpectraGenerator:
         spectra_generator_dict = self.__dict__
 
         del spectra_generator_dict['engine']
-        spectra_generator_dict['omega_res'] = num_instances
-        spectra_generator_dict['num_timesteps'] = NUM_TIMESTEPS
+        spectra_generator_dict['num_instances'] = num_instances
+        spectra_generator_dict['num_timesteps'] = self.num_timesteps
 
         info_filename = os.path.join(directory, filename)
         with open(info_filename, 'w') as f:

@@ -5,9 +5,7 @@ from abc import abstractmethod
 import json
 from datetime import datetime
 import numpy as np
-from keras.callbacks import EarlyStopping
 
-EARLYSTOPPING_PATIENCE = 15
 
 class BaseModel(ABC):
     """ Abstract class for our networks to extend. """
@@ -21,7 +19,7 @@ class BaseModel(ABC):
 
     def __init__(self, num_channels, num_timesteps, output_shape, use_comet=True):
         self.params_range = self.set_params_range()
-        self.params = None 
+        self.params = None #TODO: set this as default?
         self.keras_model = None
         self.num_channels = num_channels
         self.num_timesteps = num_timesteps
@@ -35,8 +33,6 @@ class BaseModel(ABC):
         self.preds = None
         self.experiment = None
         self.weights_path = None
-        self.early_stopping = EarlyStopping(monitor='val_loss', mode='min', verbose=1,
-                                            patience=EARLYSTOPPING_PATIENCE, restore_best_weights=True)
 
     def log_model_performance(self, X_test, y_test, batch_size, epochs, validation_size=0.20):
         self.batch_size = batch_size
@@ -64,8 +60,7 @@ class BaseModel(ABC):
         elif self.compile_dict is not None:
             self.compile(self.compile_dict)
 
-        self.keras_model.fit(X_train, y_train, validation_split=validation_size, epochs=epochs, batch_size=batch_size,
-                             callbacks=[self.early_stopping])
+        self.keras_model.fit(X_train, y_train, validation_split=validation_size, epochs=epochs, batch_size=batch_size)
         self.log_model_performance(X_test, y_test, batch_size, epochs, validation_size)
 
     def fit_generator(self, preprocessor, train_size, X_test, y_test, batch_size, epochs, compile_dict=None,
