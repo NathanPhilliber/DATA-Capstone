@@ -1,5 +1,5 @@
-from keras.models import Model
-from keras.layers import Input
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input
 from typing import List
 from abc import abstractmethod
 
@@ -116,8 +116,10 @@ class EnsembleModel:
         #     sub_models = [Lambda(lambda x: identity(x))(self.sub_models[0]) for _ in range(self.input_channels)]
         # else:
         #     sub_models = self.sub_models
-
-        self.keras_model = func([model for model in self.sub_models], **kwargs)
+        if len(self.sub_models) == 1:
+            self.keras_model = self.sub_models[0]
+        else:
+            self.keras_model = func([model for model in self.sub_models], **kwargs)
 
     def summary(self, **kwargs):
         """ Simple wrapper for Keras.model.summary"""
