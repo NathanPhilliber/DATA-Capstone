@@ -39,7 +39,9 @@ Omegaf=2*omegaShift+1;
 Omega=Omegai:(Omegaf-Omegai)/(omega_res-1):Omegaf;
 
 %range=2500:3000;
-range = floor(omega_res * 1.0/2.0) : floor(omega_res*(1/2+1/2/omegaShift)); % range used to normalize spectrum amplitude
+range=floor(omega_res*(1/2-1/2/omegaShift)):floor(omega_res*(1/2+1/2/omegaShift));range=floor(omega_res*(1/2-1/2/omegaShift)):floor(omega_res*(1/2+1/2/omegaShift));
+
+
 M = length(range);
 
 for k=1:K %number of subplots
