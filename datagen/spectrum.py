@@ -24,13 +24,23 @@ class Spectrum:
 
     def plot_channel(self, channel_number):
         sns.lineplot(x=np.linspace(0, 1, len(self.dm[0])), y=self.dm[channel_number])
-        for peak in self.peak_locations[0]:
+        try:
+            peak_locs = self.peak_locations[0]
+            p = peak_locs[0]
+        except:
+            peak_locs = [self.peak_locations]
+
+        for peak in peak_locs:
             plt.axvline(peak, 0, 1, c='red', alpha=0.6)
 
-    def plot_channels(self):
-        n_rows = (self.num_channels + 0.5) // 2
-        fig = plt.figure(figsize=(30, 35))
+    def plot_channels(self, size=None):
+        n_rows = max((self.num_channels + 0.5) // 2, 1)
+        if size is None:
+            size = (n_rows*5, self.num_channels*3)
+        fig = plt.figure(figsize=size)
         for channel in range(int(self.num_channels)):
             plt.subplot(n_rows, 2, channel + 1)
             self.plot_channel(channel)
+        plt.xticks([])
+        plt.yticks([])
         plt.show()
