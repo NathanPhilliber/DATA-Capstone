@@ -75,6 +75,7 @@ def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compi
                   compile_dict=compile_dict)
     model.log_imgs(dataset_name)
     model.log_script(dataset_config)
+
     return model
 
 

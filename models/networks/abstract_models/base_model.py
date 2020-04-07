@@ -96,20 +96,30 @@ class BaseModel(ABC):
     def get_model_history(self):
         history = self.keras_model.history.history
         for key, value in history.items():
-            history[key] = [float(v) for v in value]
+            history[key] = [float(round(v, 5)) for v in value]
         return history
 
     def evaluate(self, X_test, y_test):
         self.test_results = self.keras_model.evaluate(X_test, y_test)
 
-    def get_preds(self, X_test, y_test):
-        preds = self.keras_model.predict(X_test)
+    def format_classification_report(self, classification_report):
+        return {f'peaks_{k}_test_{metric}': metric_val for k, v in classification_report.items() for metric, metric_val in v.items()}
+
+    def get_classification_report(self, y_test, preds):
         preds_formatted = np.argmax(preds, axis=1)
         test_formatted = np.argmax(y_test, axis=1)
         peak_labels = [1 + num_peak for num_peak in range(y_test.shape[1])]
-        classif_report = classification_report(test_formatted, preds_formatted, labels=peak_labels)
-        self.experiment.log_text(classif_report)
+        classif_report = classification_report(test_formatted, preds_formatted, labels=peak_labels, output_dict=True)
+        classif_report_str = classification_report(test_formatted, preds_formatted, labels=peak_labels)
 
+        formatted = self.format_classification_report(classif_report)
+        self.experiment.log_metrics(formatted)
+        self.experiment.log_text(classif_report_str)
+        return classif_report
+
+    def get_preds(self, X_test, y_test):
+        preds = self.keras_model.predict(X_test)
+        self.get_classification_report(y_test, preds)
         return y_test, preds
 
     def get_info_dict(self):
