@@ -5,7 +5,7 @@ import pickle
 import json
 import os
 
-NUM_TIMESTEPS = 1001
+
 
 
 def adjust_peak_locations(peak_locations):
@@ -45,6 +45,7 @@ class SpectraGenerator:
         self.engine = matlab.engine.start_matlab()
         self.matlab_mapper = {'spectra_generator_v1.m': self.engine.spectra_generator_v1,
                               'spectra_generator_v2.m': self.engine.spectra_generator_v2}
+        self.num_timesteps = None
 
     def generate_spectrum(self):
         matlab_method = self.matlab_mapper[self.matlab_script]
@@ -53,6 +54,7 @@ class SpectraGenerator:
                                               float(self.omega_shift), float(self.dg),
                                               float(self.dgs), nargout=3)
         dm = [list(d) for d in dm]
+        self.num_timesteps = len(dm[0])
         if type(peak_locations) == float:
             peak_locations = list([peak_locations])
         else:
@@ -89,7 +91,7 @@ class SpectraGenerator:
         del spectra_generator_dict['engine']
         del spectra_generator_dict['matlab_mapper']
         spectra_generator_dict['num_instances'] = num_instances
-        spectra_generator_dict['num_timesteps'] = NUM_TIMESTEPS
+        spectra_generator_dict['num_timesteps'] = self.num_timesteps
 
         info_filename = os.path.join(directory, filename)
         with open(info_filename, 'w') as f:
