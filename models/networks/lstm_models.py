@@ -1,8 +1,9 @@
 from utils import *
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dense, Conv2D, Flatten, LSTM, TimeDistributed, MaxPooling2D, BatchNormalization, Dropout, \
-    Conv1D, MaxPooling1D, Bidirectional, CuDNNGRU, Reshape, Concatenate, concatenate, Input, CuDNNLSTM
+    Conv1D, Bidirectional
 from tensorflow.keras.optimizers import SGD, Adam
+from keras.layers import CuDNNGRU, CuDNNLSTM
 from models.networks.abstract_models.attention import Attention
 from models.networks.abstract_models.base_model import BaseModel
 
