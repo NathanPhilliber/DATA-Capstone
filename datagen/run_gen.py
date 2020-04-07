@@ -4,9 +4,11 @@ from datagen.spectra_loader import SpectraLoader
 import click
 import math
 import os
+import math
 
 
 MAX_REC_SHARD_SIZE = 10000
+NUM_EXAMPLE_IMAGES = 10
 
 
 def prompt_matlab_script():
@@ -82,7 +84,7 @@ def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s,
 
         print("  Making SpectraLoader...")
         spectra_loader = SpectraLoader(spectra_json=spectra_json)
-        save_images(directory, spectra_loader, 10)
+        save_images(directory, spectra_loader, math.ceil(NUM_EXAMPLE_IMAGES/num_shards))
 
         print(f"  Splitting data...")
         spectra_train, spectra_test = spectra_loader.spectra_train_test_splitter()

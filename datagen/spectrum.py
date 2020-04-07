@@ -2,6 +2,7 @@ from utils import *
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import math
 
 
 class Spectrum:
@@ -34,7 +35,7 @@ class Spectrum:
             plt.axvline(peak, 0, 1, c='red', alpha=0.6)
 
     def plot_channels(self, size):
-        n_rows = max((self.num_channels + 0.5) // 2, 1)
+        n_rows = max(math.ceil((self.num_channels + 0.5) / 2), 1)
         if size is None:
             size = (n_rows*5, self.num_channels*3)
         plt.figure(figsize=size)
