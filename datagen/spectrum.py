@@ -43,4 +43,4 @@ class Spectrum:
             self.plot_channel(channel)
         plt.xticks([])
         plt.yticks([])
-        plt.show()
+        return plt

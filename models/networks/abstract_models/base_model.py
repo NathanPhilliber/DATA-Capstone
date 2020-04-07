@@ -4,6 +4,7 @@ from abc import ABC
 from abc import abstractmethod
 import json
 from datetime import datetime
+from sklearn.metrics import classification_report
 import numpy as np
 
 
@@ -102,6 +103,12 @@ class BaseModel(ABC):
 
     def get_preds(self, X_test, y_test):
         preds = self.keras_model.predict(X_test)
+        preds_formatted = np.argmax(preds, axis=1)
+        test_formatted = np.argmax(y_test, axis=1)
+        peak_labels = [1 + num_peak for num_peak in range(y_test.shape[1])]
+        classif_report = classification_report(test_formatted, preds_formatted, labels=peak_labels)
+        self.experiment.log_text(classif_report)
+
         return y_test, preds
 
     def get_info_dict(self):
@@ -166,7 +173,6 @@ class BaseModel(ABC):
         self.experiment = Experiment(api_key=COMET_KEY, project_name=PROJECT_NAME)
         self.experiment.set_name(comet_name)
         self.log_data_attributes(dataset_config)
-        self.experiment.log_asset('datagen/spectra_generator.m')
 
     def load_comet_continue(self, exp_key):
         self.experiment = ExistingExperiment(api_key=COMET_KEY, previous_experiment=exp_key)

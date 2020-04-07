@@ -3,7 +3,7 @@ import sys
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-GEN_DIR = os.path.join(PROJECT_ROOT, "datagen")
+GEN_DIR = os.path.join(PROJECT_ROOT, "datagen/matlab_scripts")
 MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
 NETWORKS_DIR = os.path.join(MODELS_DIR, "networks")
 DATA_ROOT = os.path.join(PROJECT_ROOT, "data")
