@@ -22,15 +22,12 @@ def get_matlab_selection(num_script):
     return scripts[num_script]
 
 
-def save_images(dataset_dir, imgs):
+def save_images(dataset_dir, spectra_loader, num_examples):
     img_dir = 'imgs'
     img_directory = os.path.join(dataset_dir, img_dir)
     if img_dir not in os.listdir(dataset_dir):
         try_create_directory(img_directory)
-    for i, img in enumerate(imgs):
-        img_name = f"spectrum_{i}.png"
-        img_dir_name = os.path.join(img_directory, img_name)
-        img.savefig(img_dir_name)
+    spectra_loader.save_spectra_imgs(img_directory, num_examples)
 
 
 @click.command()
@@ -85,6 +82,7 @@ def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s,
 
         print("  Making SpectraLoader...")
         spectra_loader = SpectraLoader(spectra_json=spectra_json)
+        save_images(directory, spectra_loader, 10)
 
         print(f"  Splitting data...")
         spectra_train, spectra_test = spectra_loader.spectra_train_test_splitter()

@@ -10,7 +10,6 @@
 function [N, Dm, peakLocations, omega_res] = spectra_generator_v1(Nmax, NmaxS, nc, scale, omegaShift, dG, dGs)
 cnt=1;
 K=1;
-%rng(24);
 N=floor(rand*Nmax)+1;
 NS=floor(rand*NmaxS)+1;% number of shellmodes
 

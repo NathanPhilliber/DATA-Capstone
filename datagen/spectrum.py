@@ -33,14 +33,18 @@ class Spectrum:
         for peak in peak_locs:
             plt.axvline(peak, 0, 1, c='red', alpha=0.6)
 
-    def plot_channels(self, size=None):
+    def plot_channels(self, size):
         n_rows = max((self.num_channels + 0.5) // 2, 1)
         if size is None:
             size = (n_rows*5, self.num_channels*3)
-        fig = plt.figure(figsize=size)
+        plt.figure(figsize=size)
         for channel in range(int(self.num_channels)):
             plt.subplot(n_rows, 2, channel + 1)
             self.plot_channel(channel)
         plt.xticks([])
         plt.yticks([])
         return plt
+
+    def plot_save_channels(self, save_dir, size):
+        plt = self.plot_channels(size)
+        plt.savefig(save_dir)
