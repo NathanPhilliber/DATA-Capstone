@@ -8,6 +8,7 @@ from sklearn.metrics import classification_report
 import numpy as np
 
 
+
 class BaseModel(ABC):
     """ Abstract class for our networks to extend. """
 
@@ -182,10 +183,18 @@ class BaseModel(ABC):
             self.experiment.log_parameter("SPECTRUM_" + key, value)
 
     def log_imgs(self, dataset_name):
-        #TODO: imgs_location = dataset_config['matlab_script']
         try:
             imgs_dir = os.path.join(DATA_DIR, dataset_name, 'imgs')
             self.experiment.log_asset_folder(imgs_dir)
         except:
             print(f"No images found for dataset: {dataset_name}")
+
+    def log_script(self, dataset_config):
+        script_name = dataset_config['matlab_script']
+        try:
+            matlab_dir = os.path.join(GEN_DIR, script_name)
+            self.experiment.log_asset(matlab_dir)
+        except:
+            print(f"Could not find {script_name} under {GEN_DIR}.")
+
 
