@@ -1,9 +1,10 @@
 import os
+import shutil
 import sys
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-GEN_DIR = os.path.join(PROJECT_ROOT, "datagen")
+GEN_DIR = os.path.join(PROJECT_ROOT, "datagen/matlab_scripts")
 MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
 NETWORKS_DIR = os.path.join(MODELS_DIR, "networks")
 DATA_ROOT = os.path.join(PROJECT_ROOT, "data")
@@ -63,16 +64,15 @@ def check_clear_directory(directory, force=False):
         answer = input("\nWould you like to remove them? (y/n) ")
 
     if answer.lower() == 'y':
-        for file in files:
-            filepath = os.path.join(directory, file)
-            os.remove(filepath)
-        print(f"Deleted {len(files)} files.")
-        return True
-
-    return False
+        try:
+            shutil.rmtree(directory)
+            os.mkdir(directory)
+            return True
+        except:
+            print("Error while creating directory. ")
+            return False
 
 
 try_create_directory(DATA_ROOT, silent=True)
 try_create_directory(DATA_DIR, silent=True)
 try_create_directory(MODEL_RES_DIR, silent=True)
-

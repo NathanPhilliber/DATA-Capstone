@@ -123,6 +123,7 @@ class GoogleModel(BaseModel):
         From: https://github.com/douglas125/SpeechCmdRecognition/blob/master/SpeechModels.py
 
         """
+        num_attention = num_timesteps - 8
         model = Sequential()
         model.add(Conv1D(params['conv_1'], 5))
         model.add(BatchNormalization())
@@ -130,7 +131,7 @@ class GoogleModel(BaseModel):
         model.add(BatchNormalization())
         model.add(Bidirectional(LSTM(params['bi_1'], return_sequences=True)))
         model.add(Bidirectional(LSTM(params['bi_2'], return_sequences=True)))
-        model.add(Attention(993))
+        model.add(Attention(num_attention))
         model.add(Dropout(params['drop_1']))
         model.add(Dense(params['dense_1'], activation='elu'))
         model.add(Dropout(params['drop_2']))

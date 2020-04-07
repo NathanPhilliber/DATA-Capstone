@@ -58,6 +58,12 @@ class SpectraLoader:
         self.spectra_json = None
         return self.spectra
 
+    def save_spectra_imgs(self, save_dir, num_examples, size=(25, 10)):
+        for i in range(num_examples):
+            num_img = len(os.listdir(save_dir))
+            spectra_dir = os.path.join(save_dir, f'spectra_{num_img}.png')
+            self.spectra[i].plot_save_channels(spectra_dir, size)
+
     def get_num_instances(self):
         return len(self.spectra)
 
