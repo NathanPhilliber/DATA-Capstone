@@ -180,3 +180,12 @@ class BaseModel(ABC):
     def log_data_attributes(self, dataset_config):
         for key, value in dataset_config.items():
             self.experiment.log_parameter("SPECTRUM_" + key, value)
+
+    def log_imgs(self, dataset_name):
+        #TODO: imgs_location = dataset_config['matlab_script']
+        try:
+            imgs_dir = os.path.join(DATA_DIR, dataset_name, 'imgs')
+            self.experiment.log_asset_folder(imgs_dir)
+        except:
+            print(f"No images found for dataset: {dataset_name}")
+
