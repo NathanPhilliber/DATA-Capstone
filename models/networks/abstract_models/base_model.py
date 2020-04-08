@@ -110,7 +110,7 @@ class BaseModel(ABC):
         test_formatted = np.argmax(y_test, axis=1)
         peak_labels = [1 + num_peak for num_peak in range(y_test.shape[1])]
         classif_report = classification_report(test_formatted, preds_formatted, labels=peak_labels, output_dict=True)
-        classif_report_str = classification_report(test_formatted, preds_formatted, labels=peak_labels)
+        classif_report_str = classification_report(test_formatted, preds_formatted, target_names=peak_labels)
 
         formatted = self.format_classification_report(classif_report)
         self.experiment.log_metrics(formatted)
