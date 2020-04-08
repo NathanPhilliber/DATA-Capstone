@@ -61,6 +61,8 @@ def initialize_model():
 def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=None):
     use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
     spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, use_generator=use_generator)
+    model.log_imgs(dataset_name)
+    model.log_script(dataset_config)
 
     if use_generator:
         print("\nUsing fit generator.\n")
@@ -73,8 +75,6 @@ def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compi
         X_train, y_train, X_test, y_test = spectra_pp.transform(encoded=True)
         model.fit(X_train, y_train, X_test, y_test, batch_size=batch_size, epochs=n_epochs,
                   compile_dict=compile_dict)
-    model.log_imgs(dataset_name)
-    model.log_script(dataset_config)
 
     return model
 
