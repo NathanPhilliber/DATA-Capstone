@@ -103,12 +103,12 @@ class BaseModel(ABC):
         self.test_results = self.keras_model.evaluate(X_test, y_test)
 
     def format_classification_report(self, classification_report):
-        return {f'peaks_{k}_test_{metric}': metric_val for k, v in classification_report.items() for metric, metric_val in v.items()}
+        return {f'{k}_test_{metric}': metric_val for k, v in classification_report.items() for metric, metric_val in v.items()}
 
     def get_classification_report(self, y_test, preds):
         preds_formatted = np.argmax(preds, axis=1)
         test_formatted = np.argmax(y_test, axis=1)
-        peak_labels = [1 + num_peak for num_peak in range(y_test.shape[1])]
+        peak_labels = [f"n_peaks_{1 + num_peak }" for num_peak in range(y_test.shape[1])]
         classif_report = classification_report(test_formatted, preds_formatted, labels=peak_labels, output_dict=True)
         classif_report_str = classification_report(test_formatted, preds_formatted, target_names=peak_labels)
 
