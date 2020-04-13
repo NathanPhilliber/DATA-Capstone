@@ -85,7 +85,6 @@ def evaluate_model():
     print("Train Existing Model Setup\n")
 
     dataset_name, dataset_config, model, class_name = initialize_model()
-    #exp = initialize_comet(comet_name, dataset_config)
     result_dir, result_info = set_result_dir(class_name)
 
     model.persist(os.path.basename(result_dir))
@@ -96,16 +95,16 @@ def evaluate_model():
 
 
 @main.command(name="continue", help="Continue training an existing run")
-def continue_train_model():
+@click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
+def continue_train_model(n_epochs):
     click.clear()
     print("Train Existing Model Setup\n")
 
     dataset_name, dataset_config, model, class_name = initialize_model()
-    #exp = initialize_comet(comet_name, dataset_config)
     result_dir, result_info = set_result_dir(class_name)
 
     model.persist(os.path.basename(result_dir))
-    n_epochs = prompt_num_epochs()
+    #n_epochs = prompt_num_epochs()
     model = train_model(model, dataset_name, dataset_config, model.batch_size, n_epochs)
 
     y_true, y_pred = model.preds
@@ -122,16 +121,17 @@ def continue_train_model():
 
 @main.command(name="new", help="Train a new model")
 @click.option("--comet-name", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
-def train_new_model(comet_name):
+@click.option("--batch-size", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
+@click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
+def train_new_model(comet_name, batch_size, n_epochs):
     click.clear()
     print("Train New Model Setup\n")
 
     dataset_name, dataset_config, model, class_name = initialize_model()
     model.load_comet_new(comet_name, dataset_config)
-    #exp = initialize_comet(comet_name, dataset_config)
 
-    n_epochs = prompt_num_epochs()
-    batch_size = prompt_batch_size()
+    #n_epochs = prompt_num_epochs()
+    #batch_size = prompt_batch_size()
     model = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=COMPILE_DICT)
     model.experiment.log_parameters(model.get_info_dict())
 
@@ -153,10 +153,12 @@ def get_params_range(model):
 @main.command(name="optimize", help="Optimize model")
 @click.option("--comet-name", prompt="What would you like to call these experiments in comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
 @click.option("--max-n", prompt="Maximum number of experiments: ", default=0)
-def optimize(comet_name, max_n):
+@click.option("--batch-size", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
+@click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
+def optimize(comet_name, max_n, batch_size, n_epochs):
     dataset_name, dataset_config, model, class_name = initialize_model()
-    n_epochs = prompt_num_epochs()
-    batch_size = prompt_batch_size()
+    #n_epochs = prompt_num_epochs()
+    #batch_size = prompt_batch_size()
     params_range = get_params_range(model)
     params_range['spec']['maxCombo'] = int(max_n)
     optimizer = Optimizer(params_range, api_key=COMET_KEY)
@@ -172,12 +174,12 @@ def optimize(comet_name, max_n):
         experiment.log_metric("loss", loss)
 
 
-def prompt_batch_size():
-    return int(input("Enter batch size: "))
+#def prompt_batch_size():
+#    return int(input("Enter batch size: "))
 
 
-def prompt_num_epochs():
-    return int(input("Enter number of epochs to train for: "))
+#def prompt_num_epochs():
+#    return int(input("Enter number of epochs to train for: "))
 
 
 def prompt_dataset_selection():

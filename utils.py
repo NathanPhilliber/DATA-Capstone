@@ -21,6 +21,9 @@ COMET_KEY = "rKj0YN2SYHxxZ5dYvS3WJ1jkz"
 
 PROJECT_NAME = 'data-capstone-nasa'
 
+DEFAULT_BATCH_SIZE = 32
+DEFAULT_N_EPOCHS = 10
+
 
 def to_local_path(path):
     return path.replace(PROJECT_ROOT, "")[len(os.path.sep):]
