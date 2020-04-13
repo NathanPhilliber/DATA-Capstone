@@ -203,7 +203,7 @@ def prompt_dataset_selection(dataset_name=None):
         if dataset_name in data_dirs:
             selection = data_dirs.index(dataset_name)
         else:
-            raise Exception("Could not find dataset with set_name='%s' in '%s" % (set_name, DATA_DIR))
+            raise Exception("Could not find dataset with set_name='%s' in '%s" % (dataset_name, DATA_DIR))
 
     return data_dirs[selection]
 
