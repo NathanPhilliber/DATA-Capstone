@@ -124,8 +124,9 @@ def continue_train_model(n_epochs):
 @click.option("--comet-name", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
 @click.option("--batch-size", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
+@click.option('--dataset-name', default=None)
 @click.pass_context
-def train_new_model(ctx, comet_name, batch_size, n_epochs):
+def train_new_model(ctx, comet_name, batch_size, n_epochs, dataset_name):
     #click.clear()
     #print("Train New Model Setup\n")
 
@@ -188,12 +189,12 @@ def optimize(comet_name, max_n, batch_size, n_epochs):
 
 
 @click_utils.command()
-@click.option('--set-name', default=None)
-def prompt_dataset_selection(set_name):
+@click.option('--dataset-name', default=None)
+def prompt_dataset_selection(dataset_name):
     data_dirs = sorted(os.listdir(DATA_DIR))
     data_dirs = [data_dir for data_dir in data_dirs if os.path.isdir(os.path.join(DATA_DIR, data_dir))]
 
-    if set_name is None:
+    if dataset_name is None:
         print(f"\nThe following datasets were found in {to_local_path(DATA_DIR)}:")
         print(f"{'Selection':10} {'Set Name':15} {'Num Spectra':15} {'Num Channels':15}")
         for dir_i, dir_name in enumerate(data_dirs):
@@ -203,8 +204,8 @@ def prompt_dataset_selection(set_name):
         selection = int(input("\nSelect dataset to use: "))
 
     else:
-        if set_name in data_dirs:
-            selection = data_dirs.index(set_name)
+        if dataset_name in data_dirs:
+            selection = data_dirs.index(dataset_name)
         else:
             raise Exception("Could not find dataset with set_name='%s' in '%s" % (set_name, DATA_DIR))
 
