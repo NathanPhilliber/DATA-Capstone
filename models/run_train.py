@@ -125,7 +125,7 @@ def continue_train_model(n_epochs):
 @click.option("--batch-size", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
 @click.option('--dataset-name', default=None)
-def train_new_model(ctx, comet_name, batch_size, n_epochs, dataset_name):
+def train_new_model(comet_name, batch_size, n_epochs, dataset_name):
     #click.clear()
     #print("Train New Model Setup\n")
 
