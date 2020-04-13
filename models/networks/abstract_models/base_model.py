@@ -5,6 +5,7 @@ from abc import abstractmethod
 import json
 from datetime import datetime
 import numpy as np
+import pickle
 
 
 class BaseModel(ABC):
@@ -110,7 +111,7 @@ class BaseModel(ABC):
         params['batch_size'] = self.batch_size
         params['epochs'] = self.epochs
         params['history'] = BaseModel._merge_histories(self.history, self.get_model_history())
-        params['test_results'] = self.test_results
+        #params['test_results'] = self.test_results
         params["comet_exp_key"] = self.experiment.get_key()
         return params
 
@@ -126,7 +127,6 @@ class BaseModel(ABC):
         info_dict = self.get_info_dict()
         info_dict["class_name"] = class_name
         info_dict["dataset_name"] = dataset_name
-
         json.dump(info_dict, open(info_path, "w"))
 
         return save_dir
@@ -141,8 +141,7 @@ class BaseModel(ABC):
         self.batch_size = info['batch_size']
         self.epochs = info['epochs']
         self.history = info['history']
-        self.test_results = info['test_results']
-        #self.compile(self.compile_dict)
+        #self.test_results = info['test_results']
         self.load_comet_continue(info["comet_exp_key"])
 
     @staticmethod
