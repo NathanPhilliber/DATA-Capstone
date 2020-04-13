@@ -124,12 +124,12 @@ def continue_train_model(n_epochs):
 @click.option("--comet-name", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
 @click.option("--batch-size", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
-@click.pass_context
-def train_new_model(ctx, comet_name, batch_size, n_epochs):
+@click.option('--dataset-name', default=None)
+def train_new_model(ctx, comet_name, batch_size, n_epochs, dataset_name):
     #click.clear()
     #print("Train New Model Setup\n")
 
-    ctx.forward(prompt_dataset_selection)
+    prompt_dataset_selection(dataset_name)
 
     dataset_name, dataset_config, model, class_name = initialize_model()
     model.load_comet_new(comet_name, dataset_config)
@@ -186,9 +186,7 @@ def optimize(comet_name, max_n, batch_size, n_epochs):
 #    return int(input("Enter number of epochs to train for: "))
 
 
-@click_utils.command()
-@click.option('--dataset-name', default=None)
-def prompt_dataset_selection(dataset_name):
+def prompt_dataset_selection(dataset_name=None):
     data_dirs = sorted(os.listdir(DATA_DIR))
     data_dirs = [data_dir for data_dir in data_dirs if os.path.isdir(os.path.join(DATA_DIR, data_dir))]
 
