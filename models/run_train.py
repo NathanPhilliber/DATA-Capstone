@@ -4,6 +4,8 @@ import inspect
 import importlib
 import json
 from comet_ml import Optimizer
+import numpy as np
+from sklearn.metrics import classification_report
 from models.spectra_preprocessor import SpectraPreprocessor
 from datagen.spectra_loader import SpectraLoader
 from datetime import datetime
@@ -59,6 +61,8 @@ def initialize_model():
 def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=None):
     use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
     spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, use_generator=use_generator)
+    model.log_imgs(dataset_name)
+    model.log_script(dataset_config)
 
     if use_generator:
         print("\nUsing fit generator.\n")
@@ -71,7 +75,24 @@ def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compi
         X_train, y_train, X_test, y_test = spectra_pp.transform(encoded=True)
         model.fit(X_train, y_train, X_test, y_test, batch_size=batch_size, epochs=n_epochs,
                   compile_dict=compile_dict)
+
     return model
+
+
+@main.command(name="evaluate")
+def evaluate_model():
+    click.clear()
+    print("Train Existing Model Setup\n")
+
+    dataset_name, dataset_config, model, class_name = initialize_model()
+    #exp = initialize_comet(comet_name, dataset_config)
+    result_dir, result_info = set_result_dir(class_name)
+
+    model.persist(os.path.basename(result_dir))
+    y_true, y_pred = model.preds
+    labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
+
+    print(classification_report(y_true, y_pred, target_names=labels))
 
 
 @main.command(name="continue", help="Continue training an existing run")
@@ -90,6 +111,10 @@ def continue_train_model():
     y_true, y_pred = model.preds
     labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
     model.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
+    y_true = np.argmax(y_true, axis=1)
+    y_pred = np.argmax(y_pred, axis=1)
+
+    print(classification_report(y_true, y_pred, target_names=[1, 2, 3, 4]))
 
     save_loc = model.save(class_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")

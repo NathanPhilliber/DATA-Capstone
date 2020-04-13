@@ -4,13 +4,37 @@ from datagen.spectra_loader import SpectraLoader
 import click
 import math
 import os
+import math
 
 
 MAX_REC_SHARD_SIZE = 10000
+NUM_EXAMPLE_IMAGES = 10
+
+
+def prompt_matlab_script():
+    scripts = sorted(os.listdir(GEN_DIR))
+    scripts_prompt = f"Select from the following MATLAB scripts, located in: {GEN_DIR}"
+    for script_i, script_name in enumerate(scripts):
+        scripts_prompt += f"\n{script_i}: {script_name}"
+    return scripts_prompt
+
+
+def get_matlab_selection(num_script):
+    scripts = sorted(os.listdir(GEN_DIR))
+    return scripts[num_script]
+
+
+def save_images(dataset_dir, spectra_loader, num_examples):
+    img_dir = 'imgs'
+    img_directory = os.path.join(dataset_dir, img_dir)
+    if img_dir not in os.listdir(dataset_dir):
+        try_create_directory(img_directory)
+    spectra_loader.save_spectra_imgs(img_directory, num_examples)
 
 
 @click.command()
 @click.option('--name', prompt='Spectra are stored in this directory. ')
+@click.option('--version', type=int, default=0, prompt=prompt_matlab_script())
 @click.option('--num-instances', type=int, default=10000, prompt='Number of instances to create')
 @click.option('--shard-size', type=int, default=0, prompt='How many spectra to put in each shard (0 = no shard)')
 @click.option('--num-channels', type=float, prompt=f'Number of channels to generate', default=SpectraGenerator.DEFAULT_NC)
@@ -20,15 +44,16 @@ MAX_REC_SHARD_SIZE = 10000
 @click.option('--omega-shift', type=float, prompt=f'Omega Shift', default=SpectraGenerator.DEFAULT_OMEGA_SHIFT)
 @click.option('--dg', type=float, prompt=f'Variation of Gamma', default=SpectraGenerator.DEFAULT_DG)
 @click.option('--dgs', type=float, prompt=f'Gamma variation of shell modes', default=SpectraGenerator.DEFAULT_DGS)
-def main(name, num_instances, shard_size, num_channels, n_max, n_max_s, scale, omega_shift, dg, dgs):
+def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s, scale, omega_shift, dg, dgs):
 
     # Setup data directory
+    matlab_script = get_matlab_selection(version)
     directory = os.path.join(DATA_DIR, name)
     try_create_directory(directory)
     check_clear_directory(directory)
 
     print("Creating generator...")
-    spectra_generator = SpectraGenerator(nc=num_channels, n_max=n_max, n_max_s=n_max_s, scale=scale,
+    spectra_generator = SpectraGenerator(matlab_script=matlab_script, nc=num_channels, n_max=n_max, n_max_s=n_max_s, scale=scale,
                                          omega_shift=omega_shift, dg=dg, dgs=dgs)
 
     # If we don't want to shard, set to num_instances to make num_shards = 1
@@ -59,6 +84,7 @@ def main(name, num_instances, shard_size, num_channels, n_max, n_max_s, scale, o
 
         print("  Making SpectraLoader...")
         spectra_loader = SpectraLoader(spectra_json=spectra_json)
+        save_images(directory, spectra_loader, math.ceil(NUM_EXAMPLE_IMAGES/num_shards))
 
         print(f"  Splitting data...")
         spectra_train, spectra_test = spectra_loader.spectra_train_test_splitter()

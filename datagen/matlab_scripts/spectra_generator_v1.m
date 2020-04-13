@@ -7,7 +7,7 @@
 %dG=1.8
 %dGs=1.8
 
-function [N, Dm, peakLocations, omega_res] = spectra_generator(Nmax, NmaxS, nc, scale, omegaShift, dG, dGs)
+function [N, Dm, peakLocations, omega_res] = spectra_generator_v1(Nmax, NmaxS, nc, scale, omegaShift, dG, dGs)
 cnt=1;
 K=1;
 N=floor(rand*Nmax)+1;
@@ -39,7 +39,9 @@ Omegaf=2*omegaShift+1;
 Omega=Omegai:(Omegaf-Omegai)/(omega_res-1):Omegaf;
 
 %range=2500:3000;
-range = floor(omega_res * 1.0/2.0) : floor(omega_res*(1/2+1/2/omegaShift)); % range used to normalize spectrum amplitude
+range=floor(omega_res*(1/2-1/2/omegaShift)):floor(omega_res*(1/2+1/2/omegaShift));range=floor(omega_res*(1/2-1/2/omegaShift)):floor(omega_res*(1/2+1/2/omegaShift));
+
+
 M = length(range);
 
 for k=1:K %number of subplots

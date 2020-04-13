@@ -2,6 +2,7 @@ from utils import *
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import math
 
 
 class Spectrum:
@@ -24,13 +25,27 @@ class Spectrum:
 
     def plot_channel(self, channel_number):
         sns.lineplot(x=np.linspace(0, 1, len(self.dm[0])), y=self.dm[channel_number])
-        for peak in self.peak_locations[0]:
+        try:
+            peak_locs = self.peak_locations[0]
+            p = peak_locs[0]
+        except:
+            peak_locs = [self.peak_locations]
+
+        for peak in peak_locs:
             plt.axvline(peak, 0, 1, c='red', alpha=0.6)
 
-    def plot_channels(self):
-        n_rows = (self.num_channels + 0.5) // 2
-        fig = plt.figure(figsize=(30, 35))
+    def plot_channels(self, size):
+        n_rows = max(math.ceil((self.num_channels + 0.5) / 2), 1)
+        if size is None:
+            size = (n_rows*5, self.num_channels*3)
+        plt.figure(figsize=size)
         for channel in range(int(self.num_channels)):
             plt.subplot(n_rows, 2, channel + 1)
             self.plot_channel(channel)
-        plt.show()
+        plt.xticks([])
+        plt.yticks([])
+        return plt
+
+    def plot_save_channels(self, save_dir, size):
+        plt = self.plot_channels(size)
+        plt.savefig(save_dir)
