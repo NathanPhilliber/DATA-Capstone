@@ -17,8 +17,9 @@ COMPILE_DICT = {'optimizer': 'adam','loss': 'categorical_crossentropy', 'metrics
 OPTIMIZE_PARAMS = {'algorithm': 'bayes', 'spec': {'metric': 'loss', 'objective': 'minimize'}}
 
 GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
-tf.logging.set_verbosity(tf.logging.ERROR)
+#tf.logging.set_verbosity(tf.logging.ERROR)
 
+click_utils = click.Group()
 
 @click.group()
 def main():
@@ -123,9 +124,13 @@ def continue_train_model(n_epochs):
 @click.option("--comet-name", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
 @click.option("--batch-size", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
-def train_new_model(comet_name, batch_size, n_epochs):
-    click.clear()
-    print("Train New Model Setup\n")
+@click.pass_context
+def train_new_model(ctx, comet_name, batch_size, n_epochs):
+    #click.clear()
+    #print("Train New Model Setup\n")
+
+    ctx.forward(prompt_dataset_selection)
+    ctx.invoke(prompt_dataset_selection)
 
     dataset_name, dataset_config, model, class_name = initialize_model()
     model.load_comet_new(comet_name, dataset_config)
@@ -182,16 +187,26 @@ def optimize(comet_name, max_n, batch_size, n_epochs):
 #    return int(input("Enter number of epochs to train for: "))
 
 
-def prompt_dataset_selection():
+@click_utils.command()
+@click.option('--set-name', default=None)
+def prompt_dataset_selection(set_name):
     data_dirs = sorted(os.listdir(DATA_DIR))
     data_dirs = [data_dir for data_dir in data_dirs if os.path.isdir(os.path.join(DATA_DIR, data_dir))]
-    print(f"\nThe following datasets were found in {to_local_path(DATA_DIR)}:")
-    print(f"{'Selection':10} {'Set Name':15} {'Num Spectra':15} {'Num Channels':15}")
-    for dir_i, dir_name in enumerate(data_dirs):
-        config = SpectraLoader.read_dataset_config(dir_name)
-        print(f"  {dir_i:6}:  {dir_name:15} {format(config['num_instances'], ','):15} {int(config['num_channels']):2}")
 
-    selection = int(input("\nSelect dataset to use: "))
+    if set_name is None:
+        print(f"\nThe following datasets were found in {to_local_path(DATA_DIR)}:")
+        print(f"{'Selection':10} {'Set Name':15} {'Num Spectra':15} {'Num Channels':15}")
+        for dir_i, dir_name in enumerate(data_dirs):
+            config = SpectraLoader.read_dataset_config(dir_name)
+            print(f"  {dir_i:6}:  {dir_name:15} {format(config['num_instances'], ','):15} {int(config['num_channels']):2}")
+
+        selection = int(input("\nSelect dataset to use: "))
+
+    else:
+        if set_name in data_dirs:
+            selection = data_dirs.index(set_name)
+        else:
+            raise Exception("Could not find dataset with set_name='%s' in '%s" % (set_name, DATA_DIR))
 
     return data_dirs[selection]
 
