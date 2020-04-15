@@ -26,19 +26,23 @@ def main():
     pass
 
 
-def load_model(num_channels, n_max, num_timesteps):
+def get_module():
     module_tups = get_modules(NETWORKS_DIR)
     model_selection, class_name = prompt_model_selection(module_tups)
     module, package_name = module_tups[model_selection]
+
+    return module, class_name, package_name
+
+
+def load_model(module, class_name, num_channels, n_max, num_timesteps):
     model_class = getattr(module, class_name)
     model = model_class(num_channels, num_timesteps, n_max)
-    return model, class_name
+    return model
 
 
-def load_dataset_info():
-    dataset_name = prompt_dataset_selection()
+def load_dataset_info(dataset_name):
     dataset_config = json.load(open(os.path.join(DATA_DIR, dataset_name, DATAGEN_CONFIG), "r"))
-    return dataset_name, dataset_config
+    return dataset_config
 
 
 def load_data(dataset_name, dataset_config):
@@ -53,10 +57,11 @@ def set_result_dir(class_name):
     return result_dir, result_info
 
 
-def initialize_model():
-    dataset_name, dataset_config = load_dataset_info()
-    model, class_name = load_model(dataset_config['num_channels'], dataset_config['n_max'], dataset_config['num_timesteps'])
-    return dataset_name, dataset_config, model, class_name
+def initialize_model(dataset_name, model_name=None):
+    dataset_config = load_dataset_info(dataset_name)
+    module, class_name, package_name = get_module()
+    model = load_model(module, class_name, dataset_config['num_channels'], dataset_config['n_max'], dataset_config['num_timesteps'])
+    return dataset_config, model, class_name
 
 
 def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=None):
@@ -125,17 +130,18 @@ def continue_train_model(n_epochs):
 @click.option("--batch-size", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
 @click.option('--dataset-name', default=None)
-def train_new_model(comet_name, batch_size, n_epochs, dataset_name):
+@click.option('--model-name', default=None)
+def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name):
     #click.clear()
     #print("Train New Model Setup\n")
 
-    prompt_dataset_selection(dataset_name)
-
-    dataset_name, dataset_config, model, class_name = initialize_model()
+    dataset_name = prompt_dataset_selection(dataset_name)
+    dataset_config, model, class_name = initialize_model(dataset_name, model_name)
     model.load_comet_new(comet_name, dataset_config)
 
     #n_epochs = prompt_num_epochs()
     #batch_size = prompt_batch_size()
+
     model = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=COMPILE_DICT)
     model.experiment.log_parameters(model.get_info_dict())
 
@@ -208,22 +214,30 @@ def prompt_dataset_selection(dataset_name=None):
     return data_dirs[selection]
 
 
-def prompt_model_selection(module_tups):
+def prompt_model_selection(module_tups, model_name=None):
     list_i = 0
     names = []
     module_indices = []
 
-    print(f"\nThe following models were found in {to_local_path(NETWORKS_DIR)}:")
     for module_i, (module, module_name) in enumerate(module_tups):
         classes = sorted(get_classes(module, module_name))
 
         for class_i, class_name in enumerate(classes):
-            print(f"  {list_i}:\t {class_name}")
             list_i += 1
             names.append(class_name)
             module_indices.append(module_i)
 
-    selection = int(input("\nSelect model to run: "))
+    if model_name is None:
+        print(f"\nThe following models were found in {to_local_path(NETWORKS_DIR)}:")
+        for sel_i, class_name in enumerate(names):
+            print(f"  {sel_i}:\t {class_name}")
+
+        selection = int(input("\nSelect model to run: "))
+    else:
+        if model_name in names:
+            selection = names.index(model_name)
+        else:
+            raise Exception("Could not find model with model_name='%s' in '%s'" % (model_name, NETWORKS_DIR))
 
     return module_indices[selection], names[selection]
 
