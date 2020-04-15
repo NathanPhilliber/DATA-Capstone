@@ -26,9 +26,9 @@ def main():
     pass
 
 
-def get_module():
+def get_module(model_name=None):
     module_tups = get_modules(NETWORKS_DIR)
-    model_selection, class_name = prompt_model_selection(module_tups)
+    model_selection, class_name = prompt_model_selection(module_tups, model_name)
     module, package_name = module_tups[model_selection]
 
     return module, class_name, package_name
@@ -59,7 +59,7 @@ def set_result_dir(class_name):
 
 def initialize_model(dataset_name, model_name=None):
     dataset_config = load_dataset_info(dataset_name)
-    module, class_name, package_name = get_module()
+    module, class_name, package_name = get_module(model_name)
     model = load_model(module, class_name, dataset_config['num_channels'], dataset_config['n_max'], dataset_config['num_timesteps'])
     return dataset_config, model, class_name
 
