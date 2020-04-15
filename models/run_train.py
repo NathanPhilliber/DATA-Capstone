@@ -131,16 +131,13 @@ def continue_train_model(n_epochs):
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
 @click.option('--dataset-name', default=None)
 @click.option('--model-name', default=None)
-def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name):
-    #click.clear()
-    #print("Train New Model Setup\n")
-
+@click.option('--use-comet', default=True)
+def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, use_comet):
     dataset_name = prompt_dataset_selection(dataset_name)
     dataset_config, model, class_name = initialize_model(dataset_name, model_name)
-    model.load_comet_new(comet_name, dataset_config)
 
-    #n_epochs = prompt_num_epochs()
-    #batch_size = prompt_batch_size()
+    if use_comet:
+        model.load_comet_new(comet_name, dataset_config)
 
     model = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=COMPILE_DICT)
     model.experiment.log_parameters(model.get_info_dict())
