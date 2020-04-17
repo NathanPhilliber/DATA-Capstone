@@ -1,6 +1,6 @@
 from utils import *
 import os
-import inspect
+
 import json
 from comet_ml import Optimizer
 import numpy as np
@@ -300,8 +300,7 @@ def prompt_result_selection(class_name):
     return os.path.join(MODEL_RES_DIR, result_dirs[selection])
 
 
-def get_classes(module, package_name):
-    return [m[0] for m in inspect.getmembers(module, inspect.isclass) if m[1].__module__ == package_name]
+
 
 
 

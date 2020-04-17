@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 import importlib
+import inspect
 
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -89,6 +90,10 @@ def get_modules(dirpath):
             mods.append((mod, package_name))
 
     return mods
+
+
+def get_classes(module, package_name):
+    return [m[0] for m in inspect.getmembers(module, inspect.isclass) if m[1].__module__ == package_name]
 
 
 try_create_directory(DATA_ROOT, silent=True)
