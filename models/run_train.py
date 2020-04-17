@@ -117,7 +117,7 @@ def get_dataset_name(ctx, param, dataset_name_or_selection):
             raise Exception("Invalid option: %d out of range" % selection)
 
         dataset_name = data_dirs[selection]
-    except:
+    except ValueError:
         dataset_name = dataset_name_or_selection
 
     if dataset_name not in data_dirs:
@@ -167,8 +167,8 @@ def get_model_name(ctx, param, model_name_or_selection):
         if selection >= len(names) or selection < 0:
             raise Exception("Invalid option: %d out of range (0, %d)" % (selection, len(names)))
 
-        model_name = names.index(selection)
-    except:
+        model_name = names[selection]
+    except ValueError:
         model_name = model_name_or_selection
 
     if model_name not in names:
