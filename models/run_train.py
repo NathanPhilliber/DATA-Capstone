@@ -19,6 +19,7 @@ GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator
 #tf.logging.set_verbosity(tf.logging.ERROR)
 
 
+loaded_models = None
 def get_loaded_models():
     global loaded_models
     if loaded_models is None:
