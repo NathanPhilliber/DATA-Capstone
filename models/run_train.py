@@ -85,6 +85,43 @@ def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compi
     return model
 
 
+def prompt_dataset_string():
+    data_dirs = sorted(os.listdir(DATA_DIR))
+    data_dirs = [data_dir for data_dir in data_dirs if os.path.isdir(os.path.join(DATA_DIR, data_dir))]
+
+    msg = ""
+
+    msg += f"\nThe following datasets were found in {to_local_path(DATA_DIR)}:"
+    msg += f"{'Selection':10} {'Set Name':15} {'Num Spectra':15} {'Num Channels':15}"
+    for dir_i, dir_name in enumerate(data_dirs):
+        config = SpectraLoader.read_dataset_config(dir_name)
+        msg += f"  {dir_i:6}:  {dir_name:15} {format(config['num_instances'], ','):15} {int(config['num_channels']):2}"
+
+    msg += "\nSelect dataset to use: "
+
+    return msg
+
+
+def get_dataset_name(ctx, param, dataset_name_or_selection):
+    data_dirs = sorted(os.listdir(DATA_DIR))
+    data_dirs = [data_dir for data_dir in data_dirs if os.path.isdir(os.path.join(DATA_DIR, data_dir))]
+
+    try:
+        selection = int(dataset_name_or_selection)
+        if selection > len(data_dirs) or selection < 0:
+            raise Exception("Invalid option: %d out of range" % selection)
+
+        dataset_name = data_dirs[selection]
+    except Exception:
+        dataset_name = dataset_name_or_selection
+
+    if dataset_name not in data_dirs:
+        raise Exception("Could not find dataset with set_name='%s' in '%s" % (dataset_name, DATA_DIR))
+
+    ctx.params["dataset_name"] = dataset_name
+    return dataset_name
+
+
 @main.command(name="evaluate")
 def evaluate_model():
     click.clear()
@@ -129,11 +166,12 @@ def continue_train_model(n_epochs):
 @click.option("--comet-name", "-cn", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
 @click.option("--batch-size", "-bs", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
 @click.option("--n-epochs", "-n", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
-@click.option('--dataset-name', "-d", default=None)
+@click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), default=None, callback=get_dataset_name)
 @click.option('--model-name', "-m", default=None)
 @click.option('--use-comet', "-uc", default=True)
 def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, use_comet):
-    dataset_name = prompt_dataset_selection(dataset_name)
+    #dataset_name = prompt_dataset_selection(dataset_name)
+    print("dataset name:", dataset_name)
     dataset_config, model, class_name = initialize_model(dataset_name, model_name)
 
     if use_comet:
@@ -189,26 +227,11 @@ def optimize(comet_name, max_n, batch_size, n_epochs):
 #    return int(input("Enter number of epochs to train for: "))
 
 
-def prompt_dataset_selection(dataset_name=None):
-    data_dirs = sorted(os.listdir(DATA_DIR))
-    data_dirs = [data_dir for data_dir in data_dirs if os.path.isdir(os.path.join(DATA_DIR, data_dir))]
 
-    if dataset_name is None:
-        print(f"\nThe following datasets were found in {to_local_path(DATA_DIR)}:")
-        print(f"{'Selection':10} {'Set Name':15} {'Num Spectra':15} {'Num Channels':15}")
-        for dir_i, dir_name in enumerate(data_dirs):
-            config = SpectraLoader.read_dataset_config(dir_name)
-            print(f"  {dir_i:6}:  {dir_name:15} {format(config['num_instances'], ','):15} {int(config['num_channels']):2}")
 
-        selection = int(input("\nSelect dataset to use: "))
 
-    else:
-        if dataset_name in data_dirs:
-            selection = data_dirs.index(dataset_name)
-        else:
-            raise Exception("Could not find dataset with set_name='%s' in '%s" % (dataset_name, DATA_DIR))
 
-    return data_dirs[selection]
+
 
 
 def prompt_model_selection(module_tups, model_name=None):
