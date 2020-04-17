@@ -126,12 +126,12 @@ def continue_train_model(n_epochs):
 
 
 @main.command(name="new", help="Train a new model")
-@click.option("--comet-name", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
-@click.option("--batch-size", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
-@click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
-@click.option('--dataset-name', default=None)
-@click.option('--model-name', default=None)
-@click.option('--use-comet', default=True)
+@click.option("--comet-name", "-cn", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
+@click.option("--batch-size", "-bs", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
+@click.option("--n-epochs", "-n", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
+@click.option('--dataset-name', "-d", default=None)
+@click.option('--model-name', "-m", default=None)
+@click.option('--use-comet', "-uc", default=True)
 def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, use_comet):
     dataset_name = prompt_dataset_selection(dataset_name)
     dataset_config, model, class_name = initialize_model(dataset_name, model_name)
