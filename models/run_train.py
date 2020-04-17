@@ -16,7 +16,6 @@ COMPILE_DICT = {'optimizer': 'adam','loss': 'categorical_crossentropy', 'metrics
 OPTIMIZE_PARAMS = {'algorithm': 'bayes', 'spec': {'metric': 'loss', 'objective': 'minimize'}}
 
 GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
-#tf.logging.set_verbosity(tf.logging.ERROR)
 
 
 loaded_models = None
@@ -175,7 +174,7 @@ def get_model_name(ctx, param, model_name_or_selection):
         raise Exception("Could not find model with model_name='%s' in '%s'" % (model_name, NETWORKS_DIR))
 
     ctx.params["model_name"] = model_name
-    ctx.params["model_module_index"] = names.index(model_name)
+    ctx.params["model_module_index"] = module_indices[names.index(model_name)]
     return model_name
 
 
@@ -231,7 +230,7 @@ def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, 
     print("Using dataset:", dataset_name)
     print("Using model:", model_name)
 
-    dataset_config, model, class_name = initialize_model(dataset_name, model_name, model_module_index)
+    dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
 
     if use_comet:
         model.load_comet_new(comet_name, dataset_config)
@@ -278,16 +277,6 @@ def optimize(comet_name, max_n, batch_size, n_epochs):
         experiment.log_metric("loss", loss)
 
 
-#def prompt_batch_size():
-#    return int(input("Enter batch size: "))
-
-
-#def prompt_num_epochs():
-#    return int(input("Enter number of epochs to train for: "))
-
-
-
-
 def prompt_result_selection(class_name):
     result_dirs = os.listdir(MODEL_RES_DIR)
     result_dirs = sorted([result_dir for result_dir in result_dirs if class_name == os.path.basename(result_dir).split("_")[0]])
@@ -299,12 +288,6 @@ def prompt_result_selection(class_name):
 
     selection = int(input("\nSelect model to train: "))
     return os.path.join(MODEL_RES_DIR, result_dirs[selection])
-
-
-
-
-
-
 
 
 if __name__ == "__main__":
