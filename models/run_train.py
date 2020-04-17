@@ -1,7 +1,6 @@
 from utils import *
 import os
 import inspect
-import importlib
 import json
 from comet_ml import Optimizer
 import numpy as np
@@ -19,19 +18,24 @@ OPTIMIZE_PARAMS = {'algorithm': 'bayes', 'spec': {'metric': 'loss', 'objective':
 GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
 #tf.logging.set_verbosity(tf.logging.ERROR)
 
-click_utils = click.Group()
+
+def get_loaded_models():
+    global loaded_models
+    if loaded_models is None:
+        loaded_models = get_modules(NETWORKS_DIR)
+
+    return loaded_models
+
 
 @click.group()
 def main():
     pass
 
 
-def get_module(model_name=None):
-    module_tups = get_modules(NETWORKS_DIR)
-    model_selection, class_name = prompt_model_selection(module_tups, model_name)
-    module, package_name = module_tups[model_selection]
+def get_module(model_module_index):
+    module, package_name = get_loaded_models()[model_module_index]
 
-    return module, class_name, package_name
+    return module, package_name
 
 
 def load_model(module, class_name, num_channels, n_max, num_timesteps):
@@ -57,11 +61,11 @@ def set_result_dir(class_name):
     return result_dir, result_info
 
 
-def initialize_model(dataset_name, model_name=None):
+def initialize_model(dataset_name, model_name, model_module_index):
     dataset_config = load_dataset_info(dataset_name)
-    module, class_name, package_name = get_module(model_name)
-    model = load_model(module, class_name, dataset_config['num_channels'], dataset_config['n_max'], dataset_config['num_timesteps'])
-    return dataset_config, model, class_name
+    module, package_name = get_module(model_module_index)
+    model = load_model(module, model_name, dataset_config['num_channels'], dataset_config['n_max'], dataset_config['num_timesteps'])
+    return dataset_config, model
 
 
 def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=None):
@@ -108,7 +112,7 @@ def get_dataset_name(ctx, param, dataset_name_or_selection):
 
     try:
         selection = int(dataset_name_or_selection)
-        if selection > len(data_dirs) or selection < 0:
+        if selection >= len(data_dirs) or selection < 0:
             raise Exception("Invalid option: %d out of range" % selection)
 
         dataset_name = data_dirs[selection]
@@ -120,6 +124,57 @@ def get_dataset_name(ctx, param, dataset_name_or_selection):
 
     ctx.params["dataset_name"] = dataset_name
     return dataset_name
+
+
+def prompt_model_string():
+    list_i = 0
+    names = []
+    msg = ""
+
+    for module_i, (module, module_name) in enumerate(get_loaded_models()):
+        classes = sorted(get_classes(module, module_name))
+
+        for class_i, class_name in enumerate(classes):
+            list_i += 1
+            names.append(class_name)
+
+    msg += f"\nThe following models were found in {to_local_path(NETWORKS_DIR)}:\n"
+    for sel_i, class_name in enumerate(names):
+        msg += f"  {sel_i}:\t {class_name}\n"
+
+    msg += "\nSelect model to run: "
+
+    return msg
+
+
+def get_model_name(ctx, param, model_name_or_selection):
+    list_i = 0
+    names = []
+    module_indices = []
+
+    for module_i, (module, module_name) in enumerate(get_loaded_models()):
+        classes = sorted(get_classes(module, module_name))
+
+        for class_i, class_name in enumerate(classes):
+            list_i += 1
+            names.append(class_name)
+            module_indices.append(module_i)
+
+    try:
+        selection = int(model_name_or_selection)
+        if selection >= len(get_loaded_models()) or selection < 0:
+            raise Exception("Invalid option: %d out of range (0, %d)" % (selection, len(get_loaded_models())))
+
+        model_name = names.index(selection)
+    except:
+        model_name = model_name_or_selection
+
+    if model_name not in names:
+        raise Exception("Could not find model with model_name='%s' in '%s'" % (model_name, NETWORKS_DIR))
+
+    ctx.params["model_name"] = model_name
+    ctx.params["model_module_index"] = names.index(model_name)
+    return model_name
 
 
 @main.command(name="evaluate")
@@ -163,16 +218,18 @@ def continue_train_model(n_epochs):
 
 
 @main.command(name="new", help="Train a new model")
-@click.option("--comet-name", "-cn", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
+@click.option('--model-name', "-m", prompt=prompt_model_string(), callback=get_model_name, default=None)
+@click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
 @click.option("--batch-size", "-bs", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
 @click.option("--n-epochs", "-n", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
-@click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), default=None, callback=get_dataset_name)
-@click.option('--model-name', "-m", default=None)
 @click.option('--use-comet', "-uc", default=True)
-def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, use_comet):
+@click.option("--comet-name", "-cn", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
+def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, use_comet, model_module_index=None):
     #dataset_name = prompt_dataset_selection(dataset_name)
-    print("dataset name:", dataset_name)
-    dataset_config, model, class_name = initialize_model(dataset_name, model_name)
+    print("Using dataset:", dataset_name)
+    print("Using model:", model_name)
+
+    dataset_config, model, class_name = initialize_model(dataset_name, model_name, model_module_index)
 
     if use_comet:
         model.load_comet_new(comet_name, dataset_config)
@@ -229,39 +286,6 @@ def optimize(comet_name, max_n, batch_size, n_epochs):
 
 
 
-
-
-
-
-
-def prompt_model_selection(module_tups, model_name=None):
-    list_i = 0
-    names = []
-    module_indices = []
-
-    for module_i, (module, module_name) in enumerate(module_tups):
-        classes = sorted(get_classes(module, module_name))
-
-        for class_i, class_name in enumerate(classes):
-            list_i += 1
-            names.append(class_name)
-            module_indices.append(module_i)
-
-    if model_name is None:
-        print(f"\nThe following models were found in {to_local_path(NETWORKS_DIR)}:")
-        for sel_i, class_name in enumerate(names):
-            print(f"  {sel_i}:\t {class_name}")
-
-        selection = int(input("\nSelect model to run: "))
-    else:
-        if model_name in names:
-            selection = names.index(model_name)
-        else:
-            raise Exception("Could not find model with model_name='%s' in '%s'" % (model_name, NETWORKS_DIR))
-
-    return module_indices[selection], names[selection]
-
-
 def prompt_result_selection(class_name):
     result_dirs = os.listdir(MODEL_RES_DIR)
     result_dirs = sorted([result_dir for result_dir in result_dirs if class_name == os.path.basename(result_dir).split("_")[0]])
@@ -279,17 +303,7 @@ def get_classes(module, package_name):
     return [m[0] for m in inspect.getmembers(module, inspect.isclass) if m[1].__module__ == package_name]
 
 
-def get_modules(dirpath):
-    mods = []
-    for file in sorted(os.listdir(dirpath)):
-        if file[:2] != "__":
-            localpath = to_local_path(dirpath)
-            package_name = ".".join(os.path.split(localpath)) + "." + os.path.splitext(file)[0]
-            mod = importlib.import_module(package_name)
 
-            mods.append((mod, package_name))
-
-    return mods
 
 
 if __name__ == "__main__":

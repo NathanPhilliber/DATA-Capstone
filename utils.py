@@ -1,6 +1,8 @@
 import os
 import shutil
 import sys
+import importlib
+
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -74,6 +76,19 @@ def check_clear_directory(directory, force=False):
         except:
             print("Error while creating directory. ")
             return False
+
+
+def get_modules(dirpath):
+    mods = []
+    for file in sorted(os.listdir(dirpath)):
+        if file[:2] != "__":
+            localpath = to_local_path(dirpath)
+            package_name = ".".join(os.path.split(localpath)) + "." + os.path.splitext(file)[0]
+            mod = importlib.import_module(package_name)
+
+            mods.append((mod, package_name))
+
+    return mods
 
 
 try_create_directory(DATA_ROOT, silent=True)
