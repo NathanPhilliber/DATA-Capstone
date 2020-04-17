@@ -117,7 +117,7 @@ def get_dataset_name(ctx, param, dataset_name_or_selection):
             raise Exception("Invalid option: %d out of range" % selection)
 
         dataset_name = data_dirs[selection]
-    except Exception:
+    except:
         dataset_name = dataset_name_or_selection
 
     if dataset_name not in data_dirs:
@@ -152,8 +152,9 @@ def get_model_name(ctx, param, model_name_or_selection):
     list_i = 0
     names = []
     module_indices = []
+    loaded_models = get_loaded_models()
 
-    for module_i, (module, module_name) in enumerate(get_loaded_models()):
+    for module_i, (module, module_name) in enumerate(loaded_models):
         classes = sorted(get_classes(module, module_name))
 
         for class_i, class_name in enumerate(classes):
@@ -163,8 +164,8 @@ def get_model_name(ctx, param, model_name_or_selection):
 
     try:
         selection = int(model_name_or_selection)
-        if selection >= len(get_loaded_models()) or selection < 0:
-            raise Exception("Invalid option: %d out of range (0, %d)" % (selection, len(get_loaded_models())))
+        if selection >= len(names) or selection < 0:
+            raise Exception("Invalid option: %d out of range (0, %d)" % (selection, len(names)))
 
         model_name = names.index(selection)
     except:
