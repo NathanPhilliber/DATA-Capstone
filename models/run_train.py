@@ -235,14 +235,16 @@ def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, 
         model.load_comet_new(comet_name, dataset_config)
 
     model = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=COMPILE_DICT)
-    model.experiment.log_parameters(model.get_info_dict())
 
-    y_true, y_pred = model.preds
-    #model.experiment.log_confusion_matrix(y_true, y_pred)
-    labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
-    model.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
+    if model.experiment is not None:
+        y_true, y_pred = model.preds
+        model.experiment.log_parameters(model.get_info_dict())
+        model.experiment.log_confusion_matrix(y_true, y_pred)
 
-    save_loc = model.save(class_name, dataset_name)
+        labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
+        model.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
+
+    save_loc = model.save(model_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")
 
 
