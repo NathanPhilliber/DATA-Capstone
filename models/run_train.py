@@ -227,7 +227,7 @@ def evaluate_model():
 @click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
 def continue_train_model(model_name, dataset_name, n_epochs, model_module_index=None):
-    result_name = get_result_name(model_name, prompt_previous_run(model_name))
+    result_name = get_result_name(model_name, input(prompt_previous_run(model_name)))
     dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
     result_dir, result_info = set_result_dir(model_name)
 
