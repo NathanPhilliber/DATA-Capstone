@@ -246,7 +246,7 @@ def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, 
     dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
 
     if use_comet:
-        rocket = CometConnection(model, comet_name, dataset_config)
+        rocket = CometConnection(comet_name=comet_name, dataset_config=dataset_config)
 
     model = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=COMPILE_DICT)
 
