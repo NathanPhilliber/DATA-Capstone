@@ -178,10 +178,9 @@ def get_model_name(ctx, param, model_name_or_selection):
     return model_name
 
 
-def prompt_previous_run():
-    class_name = click.get_current_context().model_name
+def prompt_previous_run(model_name):
     result_dirs = os.listdir(MODEL_RES_DIR)
-    result_dirs = sorted([result_dir for result_dir in result_dirs if class_name == os.path.basename(result_dir).split("_")[0]])
+    result_dirs = sorted([result_dir for result_dir in result_dirs if model_name == os.path.basename(result_dir).split("_")[0]])
 
     msg = ""
     msg += "Found Existing Models:\n"
@@ -192,10 +191,9 @@ def prompt_previous_run():
     return msg
 
 
-def get_result_name(ctx, param, result_name_or_selection):
-    class_name = ctx.model_name
+def get_result_name(model_name, result_name_or_selection):
     result_dirs = os.listdir(MODEL_RES_DIR)
-    result_dirs = sorted([result_dir for result_dir in result_dirs if class_name == os.path.basename(result_dir).split("_")[0]])
+    result_dirs = sorted([result_dir for result_dir in result_dirs if model_name == os.path.basename(result_dir).split("_")[0]])
 
     try:
         selection = int(result_name_or_selection)
@@ -206,7 +204,6 @@ def get_result_name(ctx, param, result_name_or_selection):
     except ValueError:
         result_name = result_name_or_selection
 
-    ctx.params["result_name"] = result_name
     return result_name
 
 
@@ -227,10 +224,10 @@ def evaluate_model():
 
 @main.command(name="continue", help="Continue training an existing run")
 @click.option('--model-name', "-m", prompt=prompt_model_string(), callback=get_model_name, default=None)
-@click.option('--result-name', prompt=prompt_previous_run(), callback=get_result_name, default=None)
 @click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
-def continue_train_model(model_name, result_name, dataset_name, n_epochs, model_module_index=None):
+def continue_train_model(model_name, dataset_name, n_epochs, model_module_index=None):
+    result_name = get_result_name(model_name, prompt_previous_run(model_name))
     dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
     result_dir, result_info = set_result_dir(model_name)
 
@@ -246,7 +243,7 @@ def continue_train_model(model_name, result_name, dataset_name, n_epochs, model_
 
     print(classification_report(y_true, y_pred, target_names=[1, 2, 3, 4]))
 
-    save_loc = model.save(class_name, dataset_name)
+    save_loc = model.save(model_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")
 
 
