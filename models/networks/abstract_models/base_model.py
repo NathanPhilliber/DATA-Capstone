@@ -9,10 +9,10 @@ import numpy as np
 import pickle
 
 
-
 class BaseModel(ABC):
     """ Abstract class for our networks to extend. """
 
+    @abstractmethod
     def set_params_range(self):
         pass
 
@@ -22,11 +22,11 @@ class BaseModel(ABC):
 
     def __init__(self, num_channels, num_timesteps, output_shape, use_comet=True):
         self.params_range = self.set_params_range()
-        self.params = None #TODO: set this as default?
+        self.params = None
         self.keras_model = None
-        self.num_channels = num_channels
-        self.num_timesteps = num_timesteps
-        self.output_shape = output_shape
+        self.num_channels = int(num_channels)
+        self.num_timesteps = int(num_timesteps)
+        self.output_shape = int(output_shape)
         self.test_results = None
         self.compile_dict = None
         self.batch_size = None
@@ -37,23 +37,15 @@ class BaseModel(ABC):
         self.experiment = None
         self.weights_path = None
 
-    def log_model_performance(self, X_test, y_test, batch_size, epochs, validation_size=0.20):
-        self.batch_size = batch_size
-        self.epochs += epochs
-        self.validation_size = validation_size
-        self.evaluate(X_test, y_test)
-        self.history = BaseModel._merge_histories(self.history, self.get_model_history())
-        self.preds = self.get_preds(X_test, y_test)
-
     def get_default_params(self):
         return {k: v['default'] for k, v in self.params_range.items()}
 
-    def fit(self, X_train, y_train, X_test, y_test, batch_size, epochs, compile_dict=None, validation_size=0.20):
+    def _fit_preinit(self, compile_dict):
         if self.params is None:
             self.params = self.get_default_params()
             print(f"Using default parameters: {self.params}")
 
-        self.keras_model = self.build_model(int(self.num_channels), int(self.num_timesteps), int(self.output_shape), self.params)
+        self.keras_model = self.build_model(self.num_channels, self.num_timesteps, self.output_shape, self.params)
         if self.weights_path is not None:
             self.keras_model.load_weights(self.weights_path)
 
@@ -63,30 +55,30 @@ class BaseModel(ABC):
         elif self.compile_dict is not None:
             self.compile(self.compile_dict)
 
+    def fit(self, X_train, y_train, X_test, y_test, batch_size, epochs, compile_dict=None, validation_size=0.20):
+        self._fit_preinit(compile_dict)
+
         self.keras_model.fit(X_train, y_train, validation_split=validation_size, epochs=epochs, batch_size=batch_size)
-        #self.log_model_performance(X_test, y_test, batch_size, epochs, validation_size)
+        self._fit_complete(X_test, y_test, batch_size, epochs, validation_size)
 
     def fit_generator(self, preprocessor, train_size, X_test, y_test, batch_size, epochs, compile_dict=None,
                       validation_size=0.20, encoded=False):
 
-        if self.params is None:
-            self.params = self.get_default_params()
-            print(f"Using default parameters: {self.params}")
-
-        self.keras_model = self.build_model(int(self.num_channels), int(self.num_timesteps), int(self.output_shape), self.params)
-        if self.weights_path is not None:
-            self.keras_model.load_weights(self.weights_path)
-
-        if compile_dict is not None:
-            self.compile(compile_dict)
-            self.compile_dict = compile_dict
-        elif self.compile_dict is not None:
-            self.compile(self.compile_dict)
+        self._fit_preinit(compile_dict)
 
         self.keras_model.fit_generator(preprocessor.train_generator(batch_size=batch_size, encoded=encoded),
                                        steps_per_epoch=train_size//batch_size, validation_data=(X_test, y_test),
                                        epochs=epochs)
-        #self.log_model_performance(X_test, y_test, batch_size, epochs, validation_size)
+        self._fit_complete(X_test, y_test, batch_size, epochs, validation_size)
+
+    def _fit_complete(self, X_test, y_test, batch_size, epochs, validation_size=0.20):
+        self.batch_size = batch_size
+        self.epochs += epochs
+        self.validation_size = validation_size
+        self.test_results = self.evaluate(X_test, y_test)
+        self.history = BaseModel._merge_histories(self.history, self.get_model_history())
+        self.preds = self.get_preds(X_test, y_test)
+        #self.get_classification_report(*self.preds)
 
     def compile(self, compile_dict):
         self.keras_model.compile(**compile_dict)
@@ -101,39 +93,22 @@ class BaseModel(ABC):
         return history
 
     def evaluate(self, X_test, y_test):
-        self.test_results = self.keras_model.evaluate(X_test, y_test)
-
-    def format_classification_report(self, classification_report):
-        return {f'{k}_test_{metric}': metric_val for k, v in classification_report.items() for metric, metric_val in v.items()}
-
-    def get_classification_report(self, y_test, preds):
-        preds_formatted = np.argmax(preds, axis=1)
-        test_formatted = np.argmax(y_test, axis=1)
-        peak_labels = [f"n_peaks_{1 + num_peak }" for num_peak in range(y_test.shape[1])]
-        classif_report = classification_report(test_formatted, preds_formatted, target_names=peak_labels, output_dict=True)
-        classif_report_str = classification_report(test_formatted, preds_formatted, target_names=peak_labels)
-
-        if self.experiment is not None:
-            formatted = self.format_classification_report(classif_report)
-            self.experiment.log_metrics(formatted)
-            self.experiment.log_text(classif_report_str)
-
-        return classif_report
+        eval_res = self.keras_model.evaluate(X_test, y_test)
+        results = {"metrics_names": self.keras_model.metrics_names,
+                   "metrics": [float(val) for val in eval_res]}
+        return results
 
     def get_preds(self, X_test, y_test):
         preds = self.keras_model.predict(X_test)
-        self.get_classification_report(y_test, preds)
         return y_test, preds
 
-    def get_info_dict(self):
+    def serialize(self):
         params = dict()
         params['compile_dict'] = self.compile_dict
         params['batch_size'] = self.batch_size
         params['epochs'] = self.epochs
         params['history'] = BaseModel._merge_histories(self.history, self.get_model_history())
-        #params['test_results'] = self.test_results
-        if self.experiment is not None:
-            params["comet_exp_key"] = self.experiment.get_key()
+        params['test_results'] = self.test_results
 
         return params
 
@@ -146,7 +121,7 @@ class BaseModel(ABC):
         info_path = os.path.join(save_dir, TRAIN_INFO_FILENAME)
         self.keras_model.save_weights(weights_path)
 
-        info_dict = self.get_info_dict()
+        info_dict = self.serialize()
         info_dict["class_name"] = class_name
         info_dict["dataset_name"] = dataset_name
         json.dump(info_dict, open(info_path, "w"))
@@ -163,8 +138,8 @@ class BaseModel(ABC):
         self.batch_size = info['batch_size']
         self.epochs = info['epochs']
         self.history = info['history']
-        #self.test_results = info['test_results']
-        self.load_comet_continue(info["comet_exp_key"])
+        self.test_results = info['test_results']
+        #self.load_comet_continue(info["comet_exp_key"])
 
     @staticmethod
     def _merge_histories(hist1, hist2):
@@ -183,40 +158,6 @@ class BaseModel(ABC):
 
         return hist
 
-    def load_comet_new(self, comet_name, dataset_config):
-        self.experiment = Experiment(api_key=COMET_KEY, project_name=PROJECT_NAME)
-        self.experiment.set_name(comet_name)
-        self.log_data_attributes(dataset_config)
 
-    def load_comet_continue(self, exp_key):
-        self.experiment = ExistingExperiment(api_key=COMET_KEY, previous_experiment=exp_key)
-
-    def log_data_attributes(self, dataset_config):
-        if self.experiment is None:
-            return
-
-        for key, value in dataset_config.items():
-            self.experiment.log_parameter("SPECTRUM_" + key, value)
-
-    def log_imgs(self, dataset_name):
-        if self.experiment is None:
-            return
-
-        try:
-            imgs_dir = os.path.join(DATA_DIR, dataset_name, 'imgs')
-            self.experiment.log_asset_folder(imgs_dir)
-        except:
-            print(f"No images found for dataset: {dataset_name}")
-
-    def log_script(self, dataset_config):
-        if self.experiment is None:
-            return
-
-        script_name = dataset_config['matlab_script']
-        try:
-            matlab_dir = os.path.join(GEN_DIR, script_name)
-            self.experiment.log_asset(matlab_dir)
-        except:
-            print(f"Could not find {script_name} under {GEN_DIR}.")
 
 
