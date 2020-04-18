@@ -1,6 +1,5 @@
 from utils import *
 import os
-
 import json
 from comet_ml import Optimizer
 import numpy as np
@@ -10,6 +9,7 @@ from datagen.spectra_loader import SpectraLoader
 from datetime import datetime
 import click
 import tensorflow as tf
+from models.comet_connection import CometConnection
 
 
 COMPILE_DICT = {'optimizer': 'adam','loss': 'categorical_crossentropy', 'metrics': ['accuracy', 'mae', 'mse']}

@@ -1,12 +1,14 @@
 from utils import *
 from comet_ml import Experiment, Optimizer, ExistingExperiment
 import numpy as np
+from models.networks.abstract_models.base_model import BaseModel
 
 
 class CometConnection:
 
-    def __init__(self):
+    def __init__(self, model):
         self.experiment = None
+        self.model = model
 
     def serialize(self):
         params = dict()

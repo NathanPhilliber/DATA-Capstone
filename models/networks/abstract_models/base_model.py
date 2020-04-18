@@ -34,7 +34,7 @@ class BaseModel(ABC):
         self.validation_size = None
         self.history = None
         self.preds = None
-        self.experiment = None
+        #self.experiment = None
         self.weights_path = None
 
     def get_default_params(self):
