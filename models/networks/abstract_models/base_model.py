@@ -113,9 +113,11 @@ class BaseModel(ABC):
         classif_report = classification_report(test_formatted, preds_formatted, target_names=peak_labels, output_dict=True)
         classif_report_str = classification_report(test_formatted, preds_formatted, target_names=peak_labels)
 
-        formatted = self.format_classification_report(classif_report)
-        self.experiment.log_metrics(formatted)
-        self.experiment.log_text(classif_report_str)
+        if self.experiment is not None:
+            formatted = self.format_classification_report(classif_report)
+            self.experiment.log_metrics(formatted)
+            self.experiment.log_text(classif_report_str)
+
         return classif_report
 
     def get_preds(self, X_test, y_test):
@@ -130,7 +132,9 @@ class BaseModel(ABC):
         params['epochs'] = self.epochs
         params['history'] = BaseModel._merge_histories(self.history, self.get_model_history())
         #params['test_results'] = self.test_results
-        params["comet_exp_key"] = self.experiment.get_key()
+        if self.experiment is not None:
+            params["comet_exp_key"] = self.experiment.get_key()
+
         return params
 
     def save(self, class_name, dataset_name, save_dir=None):
@@ -188,10 +192,16 @@ class BaseModel(ABC):
         self.experiment = ExistingExperiment(api_key=COMET_KEY, previous_experiment=exp_key)
 
     def log_data_attributes(self, dataset_config):
+        if self.experiment is None:
+            return
+
         for key, value in dataset_config.items():
             self.experiment.log_parameter("SPECTRUM_" + key, value)
 
     def log_imgs(self, dataset_name):
+        if self.experiment is None:
+            return
+
         try:
             imgs_dir = os.path.join(DATA_DIR, dataset_name, 'imgs')
             self.experiment.log_asset_folder(imgs_dir)
@@ -199,6 +209,9 @@ class BaseModel(ABC):
             print(f"No images found for dataset: {dataset_name}")
 
     def log_script(self, dataset_config):
+        if self.experiment is None:
+            return
+
         script_name = dataset_config['matlab_script']
         try:
             matlab_dir = os.path.join(GEN_DIR, script_name)
