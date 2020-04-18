@@ -178,6 +178,38 @@ def get_model_name(ctx, param, model_name_or_selection):
     return model_name
 
 
+def prompt_previous_run():
+    class_name = click.get_current_context().model_name
+    result_dirs = os.listdir(MODEL_RES_DIR)
+    result_dirs = sorted([result_dir for result_dir in result_dirs if class_name == os.path.basename(result_dir).split("_")[0]])
+
+    msg = ""
+    msg += "Found Existing Models:\n"
+    for dir_i, result_dir in enumerate(result_dirs):
+        msg += f"  {dir_i:3}:  {result_dir}\n"
+
+    msg += "\nSelect model to train"
+    return msg
+
+
+def get_result_name(ctx, param, result_name_or_selection):
+    class_name = ctx.model_name
+    result_dirs = os.listdir(MODEL_RES_DIR)
+    result_dirs = sorted([result_dir for result_dir in result_dirs if class_name == os.path.basename(result_dir).split("_")[0]])
+
+    try:
+        selection = int(result_name_or_selection)
+        if selection >= len(result_dirs) or selection < 0:
+            raise Exception("Invalid option: %d out of range (0, %d)" % (selection, len(result_dirs)))
+
+        result_name = result_dirs[selection]
+    except ValueError:
+        result_name = result_name_or_selection
+
+    ctx.params["result_name"] = result_name
+    return result_name
+
+
 @main.command(name="evaluate")
 def evaluate_model():
     click.clear()
@@ -194,13 +226,13 @@ def evaluate_model():
 
 
 @main.command(name="continue", help="Continue training an existing run")
+@click.option('--model-name', "-m", prompt=prompt_model_string(), callback=get_model_name, default=None)
+@click.option('--result-name', prompt=prompt_previous_run(), callback=get_result_name, default=None)
+@click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
-def continue_train_model(n_epochs):
-    click.clear()
-    print("Train Existing Model Setup\n")
-
-    dataset_name, dataset_config, model, class_name = initialize_model()
-    result_dir, result_info = set_result_dir(class_name)
+def continue_train_model(model_name, result_name, dataset_name, n_epochs, model_module_index=None):
+    dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
+    result_dir, result_info = set_result_dir(model_name)
 
     model.persist(os.path.basename(result_dir))
     #n_epochs = prompt_num_epochs()
@@ -224,7 +256,7 @@ def continue_train_model(n_epochs):
 @click.option("--batch-size", "-bs", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
 @click.option("--n-epochs", "-n", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
 @click.option('--use-comet/--no-comet', is_flag=True, default=True)
-@click.option("--comet-name", "-cn", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
+@click.option("--comet-name", "-cn", prompt=("What would you like to call this run on comet?" if click.get_current_context().use_comet else None), default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
 def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, use_comet, model_module_index=None):
     print("Using dataset:", dataset_name)
     print("Using model:", model_name)
@@ -278,17 +310,7 @@ def optimize(comet_name, max_n, batch_size, n_epochs):
         experiment.log_metric("loss", loss)
 
 
-def prompt_result_selection(class_name):
-    result_dirs = os.listdir(MODEL_RES_DIR)
-    result_dirs = sorted([result_dir for result_dir in result_dirs if class_name == os.path.basename(result_dir).split("_")[0]])
 
-    prefix = "  "
-    print("Found Existing Models:")
-    for dir_i, result_dir in enumerate(result_dirs):
-        print(f"  {dir_i:3}:  {result_dir}")
-
-    selection = int(input("\nSelect model to train: "))
-    return os.path.join(MODEL_RES_DIR, result_dirs[selection])
 
 
 if __name__ == "__main__":
