@@ -101,7 +101,7 @@ def prompt_dataset_string():
         config = SpectraLoader.read_dataset_config(dir_name)
         msg += f"  {dir_i:6}:  {dir_name:15} {format(config['num_instances'], ','):15} {int(config['num_channels']):2}\n"
 
-    msg += "\nSelect dataset to use: "
+    msg += "\nSelect dataset to use"
 
     return msg
 
@@ -142,7 +142,7 @@ def prompt_model_string():
     for sel_i, class_name in enumerate(names):
         msg += f"  {sel_i}:\t {class_name}\n"
 
-    msg += "\nSelect model to run: "
+    msg += "\nSelect model to run"
 
     return msg
 
