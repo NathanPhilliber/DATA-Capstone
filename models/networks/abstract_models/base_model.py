@@ -64,7 +64,7 @@ class BaseModel(ABC):
             self.compile(self.compile_dict)
 
         self.keras_model.fit(X_train, y_train, validation_split=validation_size, epochs=epochs, batch_size=batch_size)
-        self.log_model_performance(X_test, y_test, batch_size, epochs, validation_size)
+        #self.log_model_performance(X_test, y_test, batch_size, epochs, validation_size)
 
     def fit_generator(self, preprocessor, train_size, X_test, y_test, batch_size, epochs, compile_dict=None,
                       validation_size=0.20, encoded=False):
@@ -86,7 +86,7 @@ class BaseModel(ABC):
         self.keras_model.fit_generator(preprocessor.train_generator(batch_size=batch_size, encoded=encoded),
                                        steps_per_epoch=train_size//batch_size, validation_data=(X_test, y_test),
                                        epochs=epochs)
-        self.log_model_performance(X_test, y_test, batch_size, epochs, validation_size)
+        #self.log_model_performance(X_test, y_test, batch_size, epochs, validation_size)
 
     def compile(self, compile_dict):
         self.keras_model.compile(**compile_dict)
