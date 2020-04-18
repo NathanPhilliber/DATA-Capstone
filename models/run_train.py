@@ -245,21 +245,23 @@ def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, 
 
     dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
 
-    #if use_comet:
-        #model.load_comet_new(comet_name, dataset_config)
+    if use_comet:
+        rocket = CometConnection(model, comet_name, dataset_config)
 
     model = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=COMPILE_DICT)
 
-    #if model.experiment is not None:
-    #    y_true, y_pred = model.preds
-    #    model.experiment.log_parameters(model.serialize())
-    #    model.experiment.log_confusion_matrix(y_true, y_pred)
-
-    #    labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
-    #    model.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
-
     save_loc = model.save(model_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")
+
+    if use_comet:
+        y_true, y_pred = model.preds
+        rocket.experiment.log_parameters(model.serialize())
+        rocket.experiment.log_confusion_matrix(y_true, y_pred)
+
+        labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
+        rocket.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
+
+        rocket.save(save_loc)
 
 
 def get_params_range(model):
