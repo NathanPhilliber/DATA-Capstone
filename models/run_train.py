@@ -9,6 +9,16 @@ import click
 from comet_connection import CometConnection
 
 
+"""
+
+A command line program to train our neural networks.
+Use:
+   > 'python run_train --help'
+for more information about how to run this script.
+ 
+"""
+
+
 COMPILE_DICT = {'optimizer': 'adam','loss': 'categorical_crossentropy', 'metrics': ['accuracy', 'mae', 'mse']}
 OPTIMIZE_PARAMS = {'algorithm': 'bayes', 'spec': {'metric': 'loss', 'objective': 'minimize'}}
 
@@ -17,6 +27,10 @@ GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator
 
 loaded_models = None
 def get_loaded_models():
+    """
+    Return the loaded_models global or call the import utility on the networks directory if first time
+    :return: model modules tuples
+    """
     global loaded_models
     if loaded_models is None:
         loaded_models = get_modules(NETWORKS_DIR)
@@ -206,7 +220,11 @@ def get_result_name(model_name, result_name_or_selection):
 @click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
 def continue_train_model(model_name, dataset_name, n_epochs, model_module_index=None):
-    result_name = get_result_name(model_name, input(prompt_previous_run(model_name) + ": "))  #  If you can figure out how to add this to Click args, then please do
+    result_name = get_result_name(model_name, input(prompt_previous_run(model_name) + ": "))  # If you can figure out how to add this to Click args, then please do
+
+    print("Using dataset:", dataset_name)
+    print("Using model:", model_name)
+    print("Using result:", result_name)
 
     dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
     model.persist(result_name)
@@ -265,16 +283,23 @@ def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, 
 
 
 @main.command(name="optimize", help="Optimize model")
-@click.option("--comet-name", prompt="What would you like to call these experiments in comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
-@click.option("--max-n", prompt="Maximum number of experiments: ", default=0)
+@click.option("--max-n", prompt="Maximum number of experiments: ", default=0, type=click.IntRange())
+@click.option('--model-name', "-m", prompt=prompt_model_string(), callback=get_model_name, default=None)
+@click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
 @click.option("--batch-size", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
-def optimize(comet_name, max_n, batch_size, n_epochs):
-    dataset_name, dataset_config, model, class_name = initialize_model()
-    #n_epochs = prompt_num_epochs()
-    #batch_size = prompt_batch_size()
+@click.option('--use-comet/--no-comet', is_flag=True, default=True)
+@click.option("--comet-name", "-cn", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
+def optimize(max_n, model_name, dataset_name, batch_size, n_epochs, use_comet, comet_name, model_module_index=None):
+    dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
+    rocket = None
+
+    #if use_comet:
+    #    rocket = CometConnection(comet_name=comet_name, dataset_config=dataset_config)
+    # TODO: add the optimizer code to comet_connection.py
+
     params_range = get_params_range(model)
-    params_range['spec']['maxCombo'] = int(max_n)
+    params_range['spec']['maxCombo'] = max_n
     optimizer = Optimizer(params_range, api_key=COMET_KEY)
 
     for experiment in optimizer.get_experiments(project_name=PROJECT_NAME):
