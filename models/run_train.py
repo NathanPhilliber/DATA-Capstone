@@ -232,11 +232,9 @@ def continue_train_model(model_name, dataset_name, n_epochs, model_module_index=
         y_true, y_pred = model.preds
 
         labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
-        model.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
+        rocket.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
 
-        #y_true = np.argmax(y_true, axis=1)
-        #y_pred = np.argmax(y_pred, axis=1)
-        #print(classification_report(y_true, y_pred, target_names=[1, 2, 3, 4]))
+        rocket.save(save_loc)
 
 
 @main.command(name="new", help="Train a new model")
