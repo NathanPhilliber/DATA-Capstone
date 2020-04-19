@@ -211,7 +211,7 @@ def get_result_name(model_name, result_name_or_selection):
 @click.option('--model-name', "-m", prompt=prompt_model_string(), callback=get_model_name, default=None)
 @click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
-def continue_train_model(model_name, dataset_name, n_epochs, use_comet, model_module_index=None):
+def continue_train_model(model_name, dataset_name, n_epochs, model_module_index=None):
     result_name = get_result_name(model_name, input(prompt_previous_run(model_name) + ": "))  #  If you can figure out how to add this to Click args, then please do
 
     dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
@@ -251,6 +251,7 @@ def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, 
     print("Using model:", model_name)
 
     dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
+    rocket = None
 
     if use_comet:
         rocket = CometConnection(comet_name=comet_name, dataset_config=dataset_config)
@@ -260,7 +261,7 @@ def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, 
     save_loc = model.save(model_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")
 
-    if use_comet:
+    if rocket is not None:
         y_true, y_pred = model.preds
         rocket.experiment.log_parameters(model.serialize())
         rocket.experiment.log_confusion_matrix(y_true, y_pred)

@@ -34,7 +34,6 @@ class BaseModel(ABC):
         self.validation_size = None
         self.history = None
         self.preds = None
-        #self.experiment = None
         self.weights_path = None
 
     def get_default_params(self):
@@ -131,8 +130,7 @@ class BaseModel(ABC):
     def persist(self, dirname, result_dir=MODEL_RES_DIR):
         model_directory = os.path.join(result_dir, dirname)
 
-        weights_path = os.path.join(model_directory, WEIGHTS_FILENAME)
-        self.keras_model.load_weights(weights_path)
+        self.weights_path = os.path.join(model_directory, WEIGHTS_FILENAME)
 
         info_path = os.path.join(model_directory, TRAIN_INFO_FILENAME)
         info = json.load(open(info_path, 'r'))
@@ -142,7 +140,6 @@ class BaseModel(ABC):
         self.epochs = info['epochs']
         self.history = info['history']
         self.test_results = info['test_results']
-        #self.load_comet_continue(info["comet_exp_key"])
 
     @staticmethod
     def _merge_histories(hist1, hist2):
