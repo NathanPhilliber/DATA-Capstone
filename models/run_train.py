@@ -212,7 +212,7 @@ def get_result_name(model_name, result_name_or_selection):
 @click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
 def continue_train_model(model_name, dataset_name, n_epochs, model_module_index=None):
-    result_name = get_result_name(model_name, input(prompt_previous_run(model_name)))  #  If you can figure out how to add this to Click args, then please do
+    result_name = get_result_name(model_name, input(prompt_previous_run(model_name) + ": "))  #  If you can figure out how to add this to Click args, then please do
 
     dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
     #result_info = get_prior_config(model_name)
