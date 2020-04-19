@@ -45,14 +45,15 @@ class BaseModel(ABC):
             print(f"Using default parameters: {self.params}")
 
         self.keras_model = self.build_model(self.num_channels, self.num_timesteps, self.output_shape, self.params)
-        if self.weights_path is not None:
-            self.keras_model.load_weights(self.weights_path)
 
         if compile_dict is not None:
             self.compile(compile_dict)
             self.compile_dict = compile_dict
         elif self.compile_dict is not None:
             self.compile(self.compile_dict)
+
+        if self.weights_path is not None:
+            self.keras_model.load_weights(self.weights_path)
 
     def fit(self, X_train, y_train, X_test, y_test, batch_size, epochs, compile_dict=None, validation_size=0.20):
         self._fit_preinit(compile_dict)
