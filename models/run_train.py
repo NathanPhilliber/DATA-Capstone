@@ -71,8 +71,6 @@ def initialize_model(dataset_name, model_name, model_module_index):
 def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=None):
     use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
     spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, use_generator=use_generator)
-    #model.log_imgs(dataset_name)
-    #model.log_script(dataset_config)
 
     if use_generator:
         print("\nUsing fit generator.\n")
@@ -92,7 +90,6 @@ def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compi
 def prompt_dataset_string():
     data_dirs = sorted(os.listdir(DATA_DIR))
     data_dirs = [data_dir for data_dir in data_dirs if os.path.isdir(os.path.join(DATA_DIR, data_dir))]
-
     msg = ""
 
     msg += f"\nThe following datasets were found in {to_local_path(DATA_DIR)}:\n"
@@ -270,12 +267,6 @@ def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, 
         rocket.save(save_loc)
 
 
-def get_params_range(model):
-    model_params = OPTIMIZE_PARAMS
-    model_params['parameters'] = {k: v for k, v in model.params_range.items() if k not in set('default')}
-    return model_params
-
-
 @main.command(name="optimize", help="Optimize model")
 @click.option("--comet-name", prompt="What would you like to call these experiments in comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
 @click.option("--max-n", prompt="Maximum number of experiments: ", default=0)
@@ -298,6 +289,12 @@ def optimize(comet_name, max_n, batch_size, n_epochs):
         model_exp = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=COMPILE_DICT)
         loss = model_exp.test_results[0]
         experiment.log_metric("loss", loss)
+
+
+def get_params_range(model):
+    model_params = OPTIMIZE_PARAMS
+    model_params['parameters'] = {k: v for k, v in model.params_range.items() if k not in set('default')}
+    return model_params
 
 
 if __name__ == "__main__":
