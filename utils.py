@@ -28,6 +28,8 @@ PROJECT_NAME = 'data-capstone-nasa'
 DEFAULT_BATCH_SIZE = 32
 DEFAULT_N_EPOCHS = 10
 
+RESULT_DIR_DELIM = "_"
+
 
 def to_local_path(path):
     return path.replace(PROJECT_ROOT, "")[len(os.path.sep):]

@@ -8,14 +8,13 @@ from sklearn.metrics import classification_report
 
 class CometConnection:
 
-    def __init__(self, comet_name=None, dataset_config=None, result_dir=None):
+    def __init__(self, comet_name=None, dataset_config=None, exp_key=None):
         self.experiment = None
 
         if comet_name is not None and dataset_config is not None:
             self._init_new_experiment(comet_name, dataset_config)
-        elif result_dir is not None:
-            info = self.persist(result_dir)
-            self._init_continue_experiment(info["comet_exp_key"])
+        elif exp_key is not None:
+            self._init_continue_experiment(exp_key)
 
     def _init_new_experiment(self, comet_name, dataset_config):
         self.experiment = Experiment(api_key=COMET_KEY, project_name=PROJECT_NAME)
@@ -36,11 +35,9 @@ class CometConnection:
         info_dict = self.serialize()
         json.dump(info_dict, open(os.path.join(save_dir, COMET_SAVE_FILENAME), "w"))
 
-    def persist(self, result_dir):
-        info_path = os.path.join(result_dir, COMET_SAVE_FILENAME)
-        info = json.load(open(info_path, 'r'))
-
-        return info
+    def persist(self, config_path):
+        info = json.load(open(config_path, 'r'))
+        self.__init__(exp_key=info["comet_exp_key"])
 
     def log_data_attributes(self, dataset_config):
         for key, value in dataset_config.items():

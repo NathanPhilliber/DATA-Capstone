@@ -114,7 +114,7 @@ class BaseModel(ABC):
 
     def save(self, class_name, dataset_name, save_dir=None):
         if save_dir is None:
-            save_dir = os.path.join(MODEL_RES_DIR, class_name + "_" + dataset_name + "." + str(datetime.now().strftime("%m%d.%H%M")))
+            save_dir = os.path.join(MODEL_RES_DIR, class_name + RESULT_DIR_DELIM + dataset_name + "." + str(datetime.now().strftime("%m%d.%H%M")))
 
         try_create_directory(save_dir)
         weights_path = os.path.join(save_dir, WEIGHTS_FILENAME)
@@ -130,7 +130,10 @@ class BaseModel(ABC):
 
     def persist(self, dirname, result_dir=MODEL_RES_DIR):
         model_directory = os.path.join(result_dir, dirname)
+
         weights_path = os.path.join(model_directory, WEIGHTS_FILENAME)
+        self.keras_model.load_weights(weights_path)
+
         info_path = os.path.join(model_directory, TRAIN_INFO_FILENAME)
         info = json.load(open(info_path, 'r'))
 

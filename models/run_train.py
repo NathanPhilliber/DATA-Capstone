@@ -180,7 +180,7 @@ def get_model_name(ctx, param, model_name_or_selection):
 
 def prompt_previous_run(model_name):
     result_dirs = os.listdir(MODEL_RES_DIR)
-    result_dirs = sorted([result_dir for result_dir in result_dirs if model_name == os.path.basename(result_dir).split("_")[0]])
+    result_dirs = sorted([result_dir for result_dir in result_dirs if model_name == os.path.basename(result_dir).split(RESULT_DIR_DELIM)[0]])
 
     msg = ""
     msg += "Found Existing Runs:\n"
@@ -193,7 +193,7 @@ def prompt_previous_run(model_name):
 
 def get_result_name(model_name, result_name_or_selection):
     result_dirs = os.listdir(MODEL_RES_DIR)
-    result_dirs = sorted([result_dir for result_dir in result_dirs if model_name == os.path.basename(result_dir).split("_")[0]])
+    result_dirs = sorted([result_dir for result_dir in result_dirs if model_name == os.path.basename(result_dir).split(RESULT_DIR_DELIM)[0]])
 
     try:
         selection = int(result_name_or_selection)
@@ -211,25 +211,32 @@ def get_result_name(model_name, result_name_or_selection):
 @click.option('--model-name', "-m", prompt=prompt_model_string(), callback=get_model_name, default=None)
 @click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
-def continue_train_model(model_name, dataset_name, n_epochs, model_module_index=None):
+def continue_train_model(model_name, dataset_name, n_epochs, use_comet, model_module_index=None):
     result_name = get_result_name(model_name, input(prompt_previous_run(model_name) + ": "))  #  If you can figure out how to add this to Click args, then please do
 
     dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
-    #result_info = get_prior_config(model_name)
-
     model.persist(result_name)
+
+    rocket = None
+    comet_config_path = os.path.join(MODEL_RES_DIR, result_name, COMET_SAVE_FILENAME)
+    if os.path.exists(comet_config_path):
+        rocket = CometConnection()
+        rocket.persist(comet_config_path)
+
     model = train_model(model, dataset_name, dataset_config, model.batch_size, n_epochs)
-
-    #y_true, y_pred = model.preds
-    #labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
-    #model.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
-    #y_true = np.argmax(y_true, axis=1)
-    #y_pred = np.argmax(y_pred, axis=1)
-
-    #print(classification_report(y_true, y_pred, target_names=[1, 2, 3, 4]))
 
     save_loc = model.save(model_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")
+
+    if rocket is not None:
+        y_true, y_pred = model.preds
+
+        labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
+        model.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
+
+        #y_true = np.argmax(y_true, axis=1)
+        #y_pred = np.argmax(y_pred, axis=1)
+        #print(classification_report(y_true, y_pred, target_names=[1, 2, 3, 4]))
 
 
 @main.command(name="new", help="Train a new model")
@@ -292,9 +299,6 @@ def optimize(comet_name, max_n, batch_size, n_epochs):
         model_exp = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=COMPILE_DICT)
         loss = model_exp.test_results[0]
         experiment.log_metric("loss", loss)
-
-
-
 
 
 if __name__ == "__main__":
