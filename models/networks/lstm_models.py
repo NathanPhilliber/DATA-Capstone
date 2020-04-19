@@ -126,7 +126,7 @@ class GoogleModel(BaseModel):
         """
         num_attention = num_timesteps - 8
         model = Sequential()
-        model.add(Conv1D(params['conv_1'], 5))
+        model.add(Conv1D(params['conv_1'], 5),  input_shape=(num_timesteps, num_channels))
         model.add(BatchNormalization())
         model.add(Conv1D(params['conv_2'], 5))
         model.add(BatchNormalization())
