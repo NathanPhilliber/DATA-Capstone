@@ -13,30 +13,35 @@ class SpectraPreprocessor:
         self.train_spectra_loader = SpectraLoader(dataset_name=dataset_name, subset_prefix=TRAIN_DATASET_PREFIX, eval_now=not use_generator)
         self.test_spectra_loader = SpectraLoader(dataset_name=dataset_name, subset_prefix=TEST_DATASET_PREFIX)
         self.one_hot_encoder = OneHotEncoder(sparse=False, categories='auto')
-
-        _, y_test = self.get_data(self.test_spectra_loader)
-        self.one_hot_encoder.fit(y_test)
-
+        # _, y_test = self.get_data(self.test_spectra_loader)
+        # self.one_hot_encoder.fit(y_test)
         self.datagen_config = json.load(open(os.path.join(DATA_DIR, dataset_name, DATAGEN_CONFIG), "r"))
+        self.max_nc = self.datagen_config['num_channels']
 
-    def get_data(self, loader):
+    def get_data(self, num_channels, loader):
         dm = np.array(loader.get_dm())
         X = dm.reshape(dm.shape[0], dm.shape[2], dm.shape[1])
+        # Subset X.
+        # TODO: Check if sufficient number of channels.
+        X = X[:, :, :num_channels]
         y = np.array(loader.get_n())
         y = y.reshape(y.shape[0], 1)
         return X, y
 
-    def transform(self, encoded=False):
-        return (*self.transform_train(encoded=encoded), *self.transform_test(encoded=encoded))
+    def transform(self, num_channels, encoded=False):
+        X_train, y_train = self.transform_train(num_channels, encoded=encoded)
+        X_test, y_test = self.transform_test(num_channels, encoded=encoded)
+        return X_train, y_train, X_test, y_test
 
-    def transform_train(self, encoded=False):
-        X_train, y_train = self.get_data(self.train_spectra_loader)
+    def transform_train(self, num_channels, encoded=False):
+        X_train, y_train = self.get_data(num_channels, self.train_spectra_loader)
+        self.one_hot_encoder.fit(y_train)
         if encoded:
             y_train = self.one_hot_encoder.transform(y_train)
         return X_train, y_train
 
-    def transform_test(self, encoded=False):
-        X_test, y_test = self.get_data(self.test_spectra_loader)
+    def transform_test(self, num_channels, encoded=False):
+        X_test, y_test = self.get_data(num_channels, self.test_spectra_loader)
         if encoded:
             y_test = self.one_hot_encoder.transform(y_test)
         return X_test, y_test
