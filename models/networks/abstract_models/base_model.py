@@ -1,12 +1,11 @@
 from utils import *
-from comet_ml import Experiment, Optimizer, ExistingExperiment
+from comet_ml import Experiment, ExistingExperiment
 from abc import ABC
 from abc import abstractmethod
 import json
 from datetime import datetime
 from sklearn.metrics import classification_report
 import numpy as np
-
 
 
 class BaseModel(ABC):
@@ -63,7 +62,7 @@ class BaseModel(ABC):
             self.compile(self.compile_dict)
 
         self.keras_model.fit(X_train, y_train, validation_split=validation_size, epochs=epochs, batch_size=batch_size)
-        self.log_model_performance(X_test, y_test, batch_size, epochs, validation_size)
+        #self.log_model_performance(X_test, y_test, batch_size, epochs, validation_size)
 
     def fit_generator(self, preprocessor, train_size, X_test, y_test, batch_size, epochs, compile_dict=None,
                       validation_size=0.20, encoded=False):
@@ -85,7 +84,7 @@ class BaseModel(ABC):
         self.keras_model.fit_generator(preprocessor.train_generator(batch_size=batch_size, encoded=encoded),
                                        steps_per_epoch=train_size//batch_size, validation_data=(X_test, y_test),
                                        epochs=epochs)
-        self.log_model_performance(X_test, y_test, batch_size, epochs, validation_size)
+        #self.log_model_performance(X_test, y_test, batch_size, epochs, validation_size)
 
     def compile(self, compile_dict):
         self.keras_model.compile(**compile_dict)
@@ -102,8 +101,8 @@ class BaseModel(ABC):
     def evaluate(self, X_test, y_test):
         self.test_results = self.keras_model.evaluate(X_test, y_test)
 
-    def format_classification_report(self, classification_report):
-        return {f'{k}_test_{metric}': metric_val for k, v in classification_report.items() for metric, metric_val in v.items()}
+    def format_classification_report(self, classification_report, peak_labels):
+        return {f'{p}_test_{metric}': metric_val for p in peak_labels for metric, metric_val in classification_report[p].items()}
 
     def get_classification_report(self, y_test, preds):
         preds_formatted = np.argmax(preds, axis=1)
@@ -112,7 +111,7 @@ class BaseModel(ABC):
         classif_report = classification_report(test_formatted, preds_formatted, target_names=peak_labels, output_dict=True)
         classif_report_str = classification_report(test_formatted, preds_formatted, target_names=peak_labels)
 
-        formatted = self.format_classification_report(classif_report)
+        formatted = self.format_classification_report(classif_report, peak_labels)
         self.experiment.log_metrics(formatted)
         self.experiment.log_text(classif_report_str)
         return classif_report
