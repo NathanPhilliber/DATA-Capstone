@@ -1,6 +1,9 @@
 import os
 import shutil
 import sys
+import importlib
+import inspect
+
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -18,8 +21,14 @@ DATAGEN_CONFIG = "gen_info.json"
 WEIGHTS_FILENAME = "weights.h5"
 TRAIN_INFO_FILENAME = "info.json"
 COMET_KEY = "rKj0YN2SYHxxZ5dYvS3WJ1jkz"
+COMET_SAVE_FILENAME = "comet-experiment.json"
 
 PROJECT_NAME = 'data-capstone-nasa'
+
+DEFAULT_BATCH_SIZE = 32
+DEFAULT_N_EPOCHS = 10
+
+RESULT_DIR_DELIM = "_"
 
 
 def to_local_path(path):
@@ -71,6 +80,23 @@ def check_clear_directory(directory, force=False):
         except:
             print("Error while creating directory. ")
             return False
+
+
+def get_modules(dirpath):
+    mods = []
+    for file in sorted(os.listdir(dirpath)):
+        if file[:2] != "__":
+            localpath = to_local_path(dirpath)
+            package_name = ".".join(os.path.split(localpath)) + "." + os.path.splitext(file)[0]
+            mod = importlib.import_module(package_name)
+
+            mods.append((mod, package_name))
+
+    return mods
+
+
+def get_classes(module, package_name):
+    return [m[0] for m in inspect.getmembers(module, inspect.isclass) if m[1].__module__ == package_name]
 
 
 try_create_directory(DATA_ROOT, silent=True)

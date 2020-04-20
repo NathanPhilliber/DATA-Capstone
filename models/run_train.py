@@ -1,23 +1,41 @@
 from utils import *
 import os
-import inspect
-import importlib
 import json
 from comet_ml import Optimizer
-import numpy as np
-from sklearn.metrics import classification_report
 from models.spectra_preprocessor import SpectraPreprocessor
 from datagen.spectra_loader import SpectraLoader
 from datetime import datetime
 import click
-import tensorflow as tf
+from comet_connection import CometConnection
+
+
+"""
+
+A command line program to train our neural networks.
+Use:
+   > 'python run_train --help'
+for more information about how to run this script.
+ 
+"""
 
 
 COMPILE_DICT = {'optimizer': 'adam','loss': 'categorical_crossentropy', 'metrics': ['accuracy', 'mae', 'mse']}
 OPTIMIZE_PARAMS = {'algorithm': 'bayes', 'spec': {'metric': 'loss', 'objective': 'minimize'}}
 
 GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
-tf.logging.set_verbosity(tf.logging.ERROR)
+
+
+loaded_models = None
+def get_loaded_models():
+    """
+    Return the loaded_models global or call the import utility on the networks directory if first time
+    :return: model modules tuples
+    """
+    global loaded_models
+    if loaded_models is None:
+        loaded_models = get_modules(NETWORKS_DIR)
+
+    return loaded_models
 
 
 @click.group()
@@ -25,19 +43,21 @@ def main():
     pass
 
 
-def load_model(num_channels, n_max, num_timesteps):
-    module_tups = get_modules(NETWORKS_DIR)
-    model_selection, class_name = prompt_model_selection(module_tups)
-    module, package_name = module_tups[model_selection]
+def get_module(model_module_index):
+    module, package_name = get_loaded_models()[model_module_index]
+
+    return module, package_name
+
+
+def load_model(module, class_name, num_channels, n_max, num_timesteps):
     model_class = getattr(module, class_name)
     model = model_class(num_channels, num_timesteps, n_max)
-    return model, class_name
+    return model
 
 
-def load_dataset_info():
-    dataset_name = prompt_dataset_selection()
+def load_dataset_info(dataset_name):
     dataset_config = json.load(open(os.path.join(DATA_DIR, dataset_name, DATAGEN_CONFIG), "r"))
-    return dataset_name, dataset_config
+    return dataset_config
 
 
 def load_data(dataset_name, dataset_config):
@@ -46,23 +66,22 @@ def load_data(dataset_name, dataset_config):
     return spectra_pp
 
 
-def set_result_dir(class_name):
-    result_dir = prompt_result_selection(class_name)
-    result_info = json.load(open(os.path.join(result_dir, TRAIN_INFO_FILENAME), "rb"))
-    return result_dir, result_info
+def get_prior_config(result_dirname):
+    result_path = os.path.join(MODEL_RES_DIR, result_dirname)
+    result_info = json.load(open(os.path.join(result_path, TRAIN_INFO_FILENAME), "rb"))
+    return result_info
 
 
-def initialize_model():
-    dataset_name, dataset_config = load_dataset_info()
-    model, class_name = load_model(dataset_config['num_channels'], dataset_config['n_max'], dataset_config['num_timesteps'])
-    return dataset_name, dataset_config, model, class_name
+def initialize_model(dataset_name, model_name, model_module_index):
+    dataset_config = load_dataset_info(dataset_name)
+    module, package_name = get_module(model_module_index)
+    model = load_model(module, model_name, dataset_config['num_channels'], dataset_config['n_max'], dataset_config['num_timesteps'])
+    return dataset_config, model
 
 
 def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=None):
     use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
     spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, use_generator=use_generator)
-    model.log_imgs(dataset_name)
-    model.log_script(dataset_config)
 
     if use_generator:
         print("\nUsing fit generator.\n")
@@ -79,86 +98,208 @@ def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compi
     return model
 
 
-@main.command(name="evaluate")
-def evaluate_model():
-    click.clear()
-    print("Train Existing Model Setup\n")
+def prompt_dataset_string():
+    data_dirs = sorted(os.listdir(DATA_DIR))
+    data_dirs = [data_dir for data_dir in data_dirs if os.path.isdir(os.path.join(DATA_DIR, data_dir))]
+    msg = ""
 
-    dataset_name, dataset_config, model, class_name = initialize_model()
-    #exp = initialize_comet(comet_name, dataset_config)
-    result_dir, result_info = set_result_dir(class_name)
+    msg += f"\nThe following datasets were found in {to_local_path(DATA_DIR)}:\n"
+    msg += f"{'Selection':10} {'Set Name':15} {'Num Spectra':15} {'Num Channels':15}\n"
+    for dir_i, dir_name in enumerate(data_dirs):
+        config = SpectraLoader.read_dataset_config(dir_name)
+        msg += f"  {dir_i:6}:  {dir_name:15} {format(config['num_instances'], ','):15} {int(config['num_channels']):2}\n"
 
-    model.persist(os.path.basename(result_dir))
-    y_true, y_pred = model.preds
-    labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
+    msg += "\nSelect dataset to use"
 
-    print(classification_report(y_true, y_pred, target_names=labels))
+    return msg
+
+
+def get_dataset_name(ctx, param, dataset_name_or_selection):
+    data_dirs = sorted(os.listdir(DATA_DIR))
+    data_dirs = [data_dir for data_dir in data_dirs if os.path.isdir(os.path.join(DATA_DIR, data_dir))]
+
+    try:
+        selection = int(dataset_name_or_selection)
+        if selection >= len(data_dirs) or selection < 0:
+            raise Exception("Invalid option: %d out of range" % selection)
+
+        dataset_name = data_dirs[selection]
+    except ValueError:
+        dataset_name = dataset_name_or_selection
+
+    if dataset_name not in data_dirs:
+        raise Exception("Could not find dataset with set_name='%s' in '%s" % (dataset_name, DATA_DIR))
+
+    ctx.params["dataset_name"] = dataset_name
+    return dataset_name
+
+
+def prompt_model_string():
+    list_i = 0
+    names = []
+    msg = ""
+
+    for module_i, (module, module_name) in enumerate(get_loaded_models()):
+        classes = sorted(get_classes(module, module_name))
+
+        for class_i, class_name in enumerate(classes):
+            list_i += 1
+            names.append(class_name)
+
+    msg += f"\nThe following models were found in {to_local_path(NETWORKS_DIR)}:\n"
+    for sel_i, class_name in enumerate(names):
+        msg += f"  {sel_i}:\t {class_name}\n"
+
+    msg += "\nSelect model to run"
+
+    return msg
+
+
+def get_model_name(ctx, param, model_name_or_selection):
+    list_i = 0
+    names = []
+    module_indices = []
+    loaded_models = get_loaded_models()
+
+    for module_i, (module, module_name) in enumerate(loaded_models):
+        classes = sorted(get_classes(module, module_name))
+
+        for class_i, class_name in enumerate(classes):
+            list_i += 1
+            names.append(class_name)
+            module_indices.append(module_i)
+
+    try:
+        selection = int(model_name_or_selection)
+        if selection >= len(names) or selection < 0:
+            raise Exception("Invalid option: %d out of range (0, %d)" % (selection, len(names)))
+
+        model_name = names[selection]
+    except ValueError:
+        model_name = model_name_or_selection
+
+    if model_name not in names:
+        raise Exception("Could not find model with model_name='%s' in '%s'" % (model_name, NETWORKS_DIR))
+
+    ctx.params["model_name"] = model_name
+    ctx.params["model_module_index"] = module_indices[names.index(model_name)]
+    return model_name
+
+
+def prompt_previous_run(model_name):
+    result_dirs = os.listdir(MODEL_RES_DIR)
+    result_dirs = sorted([result_dir for result_dir in result_dirs if model_name == os.path.basename(result_dir).split(RESULT_DIR_DELIM)[0]])
+
+    msg = ""
+    msg += "Found Existing Runs:\n"
+    for dir_i, result_dir in enumerate(result_dirs):
+        msg += f"  {dir_i:3}:  {result_dir}\n"
+
+    msg += "\nSelect model to train"
+    return msg
+
+
+def get_result_name(model_name, result_name_or_selection):
+    result_dirs = os.listdir(MODEL_RES_DIR)
+    result_dirs = sorted([result_dir for result_dir in result_dirs if model_name == os.path.basename(result_dir).split(RESULT_DIR_DELIM)[0]])
+
+    try:
+        selection = int(result_name_or_selection)
+        if selection >= len(result_dirs) or selection < 0:
+            raise Exception("Invalid option: %d out of range (0, %d)" % (selection, len(result_dirs)))
+
+        result_name = result_dirs[selection]
+    except ValueError:
+        result_name = result_name_or_selection
+
+    return result_name
 
 
 @main.command(name="continue", help="Continue training an existing run")
-def continue_train_model():
-    click.clear()
-    print("Train Existing Model Setup\n")
+@click.option('--model-name', "-m", prompt=prompt_model_string(), callback=get_model_name, default=None)
+@click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
+@click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
+def continue_train_model(model_name, dataset_name, n_epochs, model_module_index=None):
+    result_name = get_result_name(model_name, input(prompt_previous_run(model_name) + ": "))  # If you can figure out how to add this to Click args, then please do
 
-    dataset_name, dataset_config, model, class_name = initialize_model()
-    #exp = initialize_comet(comet_name, dataset_config)
-    result_dir, result_info = set_result_dir(class_name)
+    print("Using dataset:", dataset_name)
+    print("Using model:", model_name)
+    print("Using result:", result_name)
 
-    model.persist(os.path.basename(result_dir))
-    n_epochs = prompt_num_epochs()
+    dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
+    model.persist(result_name)
+
+    rocket = None
+    comet_config_path = os.path.join(MODEL_RES_DIR, result_name, COMET_SAVE_FILENAME)
+    if os.path.exists(comet_config_path):
+        rocket = CometConnection()
+        rocket.persist(comet_config_path)
+
     model = train_model(model, dataset_name, dataset_config, model.batch_size, n_epochs)
 
-    y_true, y_pred = model.preds
-    labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
-    model.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
-    y_true = np.argmax(y_true, axis=1)
-    y_pred = np.argmax(y_pred, axis=1)
-
-    print(classification_report(y_true, y_pred, target_names=[1, 2, 3, 4]))
-
-    save_loc = model.save(class_name, dataset_name)
+    save_loc = model.save(model_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")
+
+    if rocket is not None:
+        y_true, y_pred = model.preds
+
+        labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
+        rocket.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
+
+        rocket.save(save_loc)
 
 
 @main.command(name="new", help="Train a new model")
-@click.option("--comet-name", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
-def train_new_model(comet_name):
-    click.clear()
-    print("Train New Model Setup\n")
+@click.option('--model-name', "-m", prompt=prompt_model_string(), callback=get_model_name, default=None)
+@click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
+@click.option("--batch-size", "-bs", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
+@click.option("--n-epochs", "-n", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
+@click.option('--use-comet/--no-comet', is_flag=True, default=True)
+@click.option("--comet-name", "-cn", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
+def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, use_comet, model_module_index=None):
+    print("Using dataset:", dataset_name)
+    print("Using model:", model_name)
 
-    dataset_name, dataset_config, model, class_name = initialize_model()
-    model.load_comet_new(comet_name, dataset_config)
-    #exp = initialize_comet(comet_name, dataset_config)
+    dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
+    rocket = None
 
-    n_epochs = prompt_num_epochs()
-    batch_size = prompt_batch_size()
+    if use_comet:
+        rocket = CometConnection(comet_name=comet_name, dataset_config=dataset_config)
+
     model = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=COMPILE_DICT)
-    model.experiment.log_parameters(model.get_info_dict())
 
-    y_true, y_pred = model.preds
-    #model.experiment.log_confusion_matrix(y_true, y_pred)
-    labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
-    model.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
-
-    save_loc = model.save(class_name, dataset_name)
+    save_loc = model.save(model_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")
 
+    if rocket is not None:
+        y_true, y_pred = model.preds
+        rocket.experiment.log_parameters(model.serialize())
+        rocket.experiment.log_confusion_matrix(y_true, y_pred)
 
-def get_params_range(model):
-    model_params = OPTIMIZE_PARAMS
-    model_params['parameters'] = {k: v for k, v in model.params_range.items() if k not in set('default')}
-    return model_params
+        labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
+        rocket.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
+
+        rocket.save(save_loc)
 
 
 @main.command(name="optimize", help="Optimize model")
-@click.option("--comet-name", prompt="What would you like to call these experiments in comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
-@click.option("--max-n", prompt="Maximum number of experiments: ", default=0)
-def optimize(comet_name, max_n):
-    dataset_name, dataset_config, model, class_name = initialize_model()
-    n_epochs = prompt_num_epochs()
-    batch_size = prompt_batch_size()
+@click.option("--max-n", prompt="Maximum number of experiments: ", default=0, type=click.IntRange())
+@click.option('--model-name', "-m", prompt=prompt_model_string(), callback=get_model_name, default=None)
+@click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
+@click.option("--batch-size", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
+@click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
+@click.option('--use-comet/--no-comet', is_flag=True, default=True)
+@click.option("--comet-name", "-cn", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
+def optimize(max_n, model_name, dataset_name, batch_size, n_epochs, use_comet, comet_name, model_module_index=None):
+    dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
+    rocket = None
+
+    #if use_comet:
+    #    rocket = CometConnection(comet_name=comet_name, dataset_config=dataset_config)
+    # TODO: add the optimizer code to comet_connection.py
+
     params_range = get_params_range(model)
-    params_range['spec']['maxCombo'] = int(max_n)
+    params_range['spec']['maxCombo'] = max_n
     optimizer = Optimizer(params_range, api_key=COMET_KEY)
 
     for experiment in optimizer.get_experiments(project_name=PROJECT_NAME):
@@ -172,76 +313,10 @@ def optimize(comet_name, max_n):
         experiment.log_metric("loss", loss)
 
 
-def prompt_batch_size():
-    return int(input("Enter batch size: "))
-
-
-def prompt_num_epochs():
-    return int(input("Enter number of epochs to train for: "))
-
-
-def prompt_dataset_selection():
-    data_dirs = sorted(os.listdir(DATA_DIR))
-    data_dirs = [data_dir for data_dir in data_dirs if os.path.isdir(os.path.join(DATA_DIR, data_dir))]
-    print(f"\nThe following datasets were found in {to_local_path(DATA_DIR)}:")
-    print(f"{'Selection':10} {'Set Name':15} {'Num Spectra':15} {'Num Channels':15}")
-    for dir_i, dir_name in enumerate(data_dirs):
-        config = SpectraLoader.read_dataset_config(dir_name)
-        print(f"  {dir_i:6}:  {dir_name:15} {format(config['num_instances'], ','):15} {int(config['num_channels']):2}")
-
-    selection = int(input("\nSelect dataset to use: "))
-
-    return data_dirs[selection]
-
-
-def prompt_model_selection(module_tups):
-    list_i = 0
-    names = []
-    module_indices = []
-
-    print(f"\nThe following models were found in {to_local_path(NETWORKS_DIR)}:")
-    for module_i, (module, module_name) in enumerate(module_tups):
-        classes = sorted(get_classes(module, module_name))
-
-        for class_i, class_name in enumerate(classes):
-            print(f"  {list_i}:\t {class_name}")
-            list_i += 1
-            names.append(class_name)
-            module_indices.append(module_i)
-
-    selection = int(input("\nSelect model to run: "))
-
-    return module_indices[selection], names[selection]
-
-
-def prompt_result_selection(class_name):
-    result_dirs = os.listdir(MODEL_RES_DIR)
-    result_dirs = sorted([result_dir for result_dir in result_dirs if class_name == os.path.basename(result_dir).split("_")[0]])
-
-    prefix = "  "
-    print("Found Existing Models:")
-    for dir_i, result_dir in enumerate(result_dirs):
-        print(f"  {dir_i:3}:  {result_dir}")
-
-    selection = int(input("\nSelect model to train: "))
-    return os.path.join(MODEL_RES_DIR, result_dirs[selection])
-
-
-def get_classes(module, package_name):
-    return [m[0] for m in inspect.getmembers(module, inspect.isclass) if m[1].__module__ == package_name]
-
-
-def get_modules(dirpath):
-    mods = []
-    for file in sorted(os.listdir(dirpath)):
-        if file[:2] != "__":
-            localpath = to_local_path(dirpath)
-            package_name = ".".join(os.path.split(localpath)) + "." + os.path.splitext(file)[0]
-            mod = importlib.import_module(package_name)
-
-            mods.append((mod, package_name))
-
-    return mods
+def get_params_range(model):
+    model_params = OPTIMIZE_PARAMS
+    model_params['parameters'] = {k: v for k, v in model.params_range.items() if k not in set('default')}
+    return model_params
 
 
 if __name__ == "__main__":
