@@ -1,5 +1,5 @@
 from utils import *
-from datagen.spectra_generator import SpectraGenerator
+from datagen.spectra_generator import LocalSpectraGenerator
 from datagen.spectra_loader import SpectraLoader
 import click
 import math
@@ -53,7 +53,7 @@ def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s,
     check_clear_directory(directory)
 
     print("Creating generator...")
-    spectra_generator = SpectraGenerator(matlab_script=matlab_script, nc=num_channels, n_max=n_max, n_max_s=n_max_s, scale=scale,
+    spectra_generator = LocalSpectraGenerator(matlab_script=matlab_script, nc=num_channels, n_max=n_max, n_max_s=n_max_s, scale=scale,
                                          omega_shift=omega_shift, dg=dg, dgs=dgs)
 
     # If we don't want to shard, set to num_instances to make num_shards = 1
@@ -118,7 +118,7 @@ def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s,
             num_saved += len(spectra_test_json)
 
     print("\nSaving info...")
-    spectra_generator.create_spectra_info(num_instances, directory)
+    spectra_generator.save_metadata(num_instances, directory)
     print(f"Saved {num_saved} spectra to {directory}.\nDone.")
 
 
