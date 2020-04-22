@@ -45,7 +45,6 @@ def main():
 
 def get_module(model_module_index):
     module, package_name = get_loaded_models()[model_module_index]
-
     return module, package_name
 
 
@@ -72,21 +71,26 @@ def get_prior_config(result_dirname):
     return result_info
 
 
-def initialize_model(dataset_name, model_name, model_module_index):
+def initialize_model(dataset_name, model_name, model_module_index, num_channels, num_instances):
     dataset_config = load_dataset_info(dataset_name)
+    # Adjust num_channels to user-specified num_channels instead of the dataset's num_channels.
+    dataset_config['num_channels'] = num_channels
+    dataset_config['num_instances_used'] = num_instances
     module, package_name = get_module(model_module_index)
-    model = load_model(module, model_name, dataset_config['num_channels'], dataset_config['n_max'], dataset_config['num_timesteps'])
+    model = load_model(module, model_name, num_channels, dataset_config['n_max'], dataset_config['num_timesteps'])
     return dataset_config, model
 
 
-def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=None):
+def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, num_channels, num_instances, compile_dict=None):
     use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
-    spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, use_generator=use_generator)
+    print('use_generator: ', use_generator)
+    spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, num_channels=num_channels, num_instances=num_instances,
+                                     use_generator=use_generator)
 
     if use_generator:
         print("\nUsing fit generator.\n")
         X_test, y_test = spectra_pp.transform_test(encoded=True)
-        model.fit_generator(spectra_pp, spectra_pp.datagen_config["num_instances"], X_test,
+        model.fit_generator(spectra_pp, num_instances, X_test,
                             y_test, batch_size=batch_size, epochs=n_epochs, encoded=True,
                             compile_dict=compile_dict)
 
@@ -252,21 +256,24 @@ def continue_train_model(model_name, dataset_name, n_epochs, model_module_index=
 @main.command(name="new", help="Train a new model")
 @click.option('--model-name', "-m", prompt=prompt_model_string(), callback=get_model_name, default=None)
 @click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
+@click.option('--num-channels', "-nc", prompt="Number of Channels: ", type=click.IntRange(min=1))
+@click.option('--num-instances', "-ns", prompt="Number of Instances: ", type=click.IntRange(min=1))
 @click.option("--batch-size", "-bs", prompt="Batch size", default=DEFAULT_BATCH_SIZE, type=click.IntRange(min=1))
 @click.option("--n-epochs", "-n", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
 @click.option('--use-comet/--no-comet', is_flag=True, default=True)
 @click.option("--comet-name", "-cn", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
-def train_new_model(comet_name, batch_size, n_epochs, dataset_name, model_name, use_comet, model_module_index=None):
+def train_new_model(comet_name, num_channels, num_instances, batch_size, n_epochs, dataset_name, model_name, use_comet, model_module_index=None):
     print("Using dataset:", dataset_name)
     print("Using model:", model_name)
 
-    dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
+    dataset_config, model = initialize_model(dataset_name, model_name, model_module_index, num_channels, num_instances)
     rocket = None
 
     if use_comet:
         rocket = CometConnection(comet_name=comet_name, dataset_config=dataset_config)
 
-    model = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, compile_dict=COMPILE_DICT)
+    model = train_model(model, dataset_name, dataset_config, batch_size, n_epochs, num_channels, num_instances,
+                        compile_dict=COMPILE_DICT)
 
     save_loc = model.save(model_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")

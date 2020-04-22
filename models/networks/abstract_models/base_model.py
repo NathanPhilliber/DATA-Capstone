@@ -65,7 +65,8 @@ class BaseModel(ABC):
 
         self._fit_preinit(compile_dict)
 
-        self.keras_model.fit_generator(preprocessor.train_generator(batch_size=batch_size, encoded=encoded),
+        self.keras_model.fit_generator(preprocessor.train_generator(batch_size=batch_size,
+                                                                    num_instances=train_size, encoded=encoded),
                                        steps_per_epoch=train_size//batch_size, validation_data=(X_test, y_test),
                                        epochs=epochs)
 
