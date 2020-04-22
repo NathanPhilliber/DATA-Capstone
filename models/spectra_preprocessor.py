@@ -1,5 +1,4 @@
 from utils import *
-from datagen.spectrum import Spectrum
 from datagen.spectra_loader import SpectraLoader
 import json
 from sklearn.preprocessing import OneHotEncoder
