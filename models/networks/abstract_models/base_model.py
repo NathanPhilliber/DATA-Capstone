@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from sklearn.metrics import classification_report
 import numpy as np
-import pickle
+
 
 class BaseModel(ABC):
     """ Abstract class for our networks to extend. """
