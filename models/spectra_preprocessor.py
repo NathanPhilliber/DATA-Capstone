@@ -51,7 +51,7 @@ class SpectraPreprocessor:
             y_test = self.one_hot_encoder.transform(y_test)
         return X_test, y_test
 
-    def train_generator(self, batch_size, num_instances, encoded=False):
+    def train_generator(self, batch_size, encoded=False):
         cur_set_i = 0
         files = self.train_spectra_loader.get_data_files()
 
@@ -59,8 +59,7 @@ class SpectraPreprocessor:
         spectra_x = None
         spectra_y = None
 
-        num_yielded_instances = 0
-        while True and num_yielded_instances < num_instances:
+        while True:
             if cur_set_i >= num_files:
                 cur_set_i = 0
                 random.shuffle(files)
@@ -84,7 +83,7 @@ class SpectraPreprocessor:
                 spectra_batch_y = spectra_y[:batch_size]
                 spectra_x = spectra_x[batch_size:]
                 spectra_y = spectra_y[batch_size:]
-                num_yielded_instances += spectra_batch_y.shape[0]
+
 
                 yield spectra_batch_x, spectra_batch_y
 

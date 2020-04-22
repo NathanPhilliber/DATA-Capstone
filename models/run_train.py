@@ -7,6 +7,9 @@ from datagen.spectra_loader import SpectraLoader
 from datetime import datetime
 import click
 from comet_connection import CometConnection
+from sklearn.metrics import classification_report
+import numpy as np
+
 
 
 """
@@ -23,9 +26,27 @@ COMPILE_DICT = {'optimizer': 'adam','loss': 'categorical_crossentropy', 'metrics
 OPTIMIZE_PARAMS = {'algorithm': 'bayes', 'spec': {'metric': 'loss', 'objective': 'minimize'}}
 
 GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
-
-
 loaded_models = None
+
+
+def format_classification_report(classification_report, peak_labels):
+    return {f'{p}_test_{metric}': metric_val for p in peak_labels for metric, metric_val in
+            classification_report[p].items()}
+
+
+def get_classification_report(y_test, preds, experiment):
+    preds_formatted = np.argmax(preds, axis=1)
+    test_formatted = np.argmax(y_test, axis=1)
+    peak_labels = [f"n_peaks_{1 + num_peak}" for num_peak in range(y_test.shape[1])]
+    classif_report = classification_report(test_formatted, preds_formatted, target_names=peak_labels, output_dict=True)
+    classif_report_str = classification_report(test_formatted, preds_formatted, target_names=peak_labels)
+
+    formatted = format_classification_report(classif_report, peak_labels)
+    experiment.log_metrics(formatted)
+    experiment.log_text(classif_report_str)
+    return classif_report
+
+
 def get_loaded_models():
     """
     Return the loaded_models global or call the import utility on the networks directory if first time
@@ -285,6 +306,7 @@ def train_new_model(comet_name, num_channels, num_instances, batch_size, n_epoch
 
         labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
         rocket.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
+        get_classification_report(y_true, y_pred, rocket.experiment)
 
         rocket.save(save_loc)
 
