@@ -17,6 +17,10 @@ class SpectraPreprocessor:
         self.num_channels = num_channels
         self.num_instances = num_instances
 
+        # TODO: Fix this.
+        _, y_test = self.get_data(self.test_spectra_loader)
+        self.one_hot_encoder.fit(y_test)
+
     def get_data(self, loader):
         dm = np.array(loader.get_dm())
         X = dm.reshape(dm.shape[0], dm.shape[2], dm.shape[1])
@@ -38,7 +42,7 @@ class SpectraPreprocessor:
         X_train, y_train = self.get_data(self.train_spectra_loader)
         self.one_hot_encoder.fit(y_train)
         if encoded:
-            y_train = self.one_hot_encoder.fit_transform(y_train)
+            y_train = self.one_hot_encoder.transform(y_train)
         return X_train, y_train
 
     def transform_test(self, encoded=False):
