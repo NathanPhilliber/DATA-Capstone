@@ -5,7 +5,8 @@ import pickle
 import json
 import os
 
-
+from abc import abstractmethod, ABC
+from s3 import S3
 
 
 def adjust_peak_locations(peak_locations):
@@ -18,7 +19,7 @@ def get_num_timesteps(spectrum):
     return spectrum.get_num_timesteps()
 
 
-class SpectraGenerator:
+class SpectraGenerator(ABC):
     DEFAULT_N_MAX = 5.0
     DEFAULT_N_MAX_S = 5.0
     DEFAULT_NC = 10.0
@@ -46,6 +47,7 @@ class SpectraGenerator:
         self.matlab_mapper = {'spectra_generator_v1.m': self.engine.spectra_generator_v1,
                               'spectra_generator_v2.m': self.engine.spectra_generator_v2}
         self.num_timesteps = None
+        self.metadata = None
 
     def generate_spectrum(self):
         matlab_method = self.matlab_mapper[self.matlab_script]
@@ -71,28 +73,58 @@ class SpectraGenerator:
         num_timesteps = get_num_timesteps(spectra[0])
         self.num_timesteps = num_timesteps
         spectra_json = [spectrum.__dict__ for spectrum in spectra]
+        self.update_metadata()
         return spectra_json
 
-    @staticmethod
-    def save_spectra(spectra_json, filename, save_dir="."):
-        filepath = os.path.join(save_dir, filename)
-
-        with open(filepath, 'wb') as file_out:
-            pickle.dump(spectra_json, file_out)
+    @abstractmethod
+    def save_spectra(self, spectra_json, filename):
+        ...
 
     def generate_save_spectra(self, n_instances, filename):
         filepath = os.path.join(DATA_DIR, filename)
         spectra_json = self.generate_spectra_json(n_instances)
         self.save_spectra(spectra_json, filepath)
 
-    def create_spectra_info(self, num_instances, directory=".", filename=DATAGEN_CONFIG):
+    def update_metadata(self, num_instances):
         spectra_generator_dict = self.__dict__
 
         del spectra_generator_dict['engine']
         del spectra_generator_dict['matlab_mapper']
+        del spectra_generator_dict['metadata']  # Remove metadata from the dictionary as we dont want it to be nested
         spectra_generator_dict['num_instances'] = num_instances
-        spectra_generator_dict['num_timesteps'] = self.num_timesteps
 
+        self.metadata = spectra_generator_dict
+
+    def save_metadata(self, num_instances, directory=".", filename=DATAGEN_CONFIG):
+        self.update_metadata(num_instances)
         info_filename = os.path.join(directory, filename)
         with open(info_filename, 'w') as f:
-            json.dump(spectra_generator_dict, f, indent=4)
+            json.dump(self.metadata, f, indent=4)
+
+
+class LocalSpectraGenerator(SpectraGenerator):
+    """
+    Class that generates a spectra and saves it to disk.
+    """
+    def __init__(self, save_dir, **kwargs):
+        super(kwargs)
+        self.save_dir = save_dir
+
+    def save_spectra(self, spectra_json, filename):
+        filepath = os.path.join(self.save_dir, filename)
+
+        with open(filepath, 'wb') as file_out:
+            pickle.dump(spectra_json, file_out)
+
+
+class S3SpectraGenerator(SpectraGenerator):
+    """
+    Class that generates spectra and saves the generated data to an S3 bucket.
+    """
+    def __init__(self, bucket_name, **kwargs):
+        super(kwargs)
+        self.uploader = S3(bucket_name)
+
+    def save_spectra(self, spectra_json, filename):
+        self.uploader.upload_json(spectra_json, self.metadata, filename)
+
