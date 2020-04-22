@@ -1,4 +1,5 @@
 from utils import *
+from datagen.spectrum import Spectrum
 from datagen.spectra_loader import SpectraLoader
 import json
 from sklearn.preprocessing import OneHotEncoder
@@ -38,7 +39,7 @@ class SpectraPreprocessor:
         X_train, y_train = self.get_data(self.train_spectra_loader)
         self.one_hot_encoder.fit(y_train)
         if encoded:
-            y_train = self.one_hot_encoder.transform(y_train)
+            y_train = self.one_hot_encoder.fit_transform(y_train)
         return X_train, y_train
 
     def transform_test(self, encoded=False):
@@ -49,7 +50,6 @@ class SpectraPreprocessor:
 
     def train_generator(self, batch_size, num_instances, encoded=False):
         cur_set_i = 0
-        print('here')
         files = self.train_spectra_loader.get_data_files()
 
         num_files = len(files)
@@ -58,9 +58,6 @@ class SpectraPreprocessor:
 
         num_yielded_instances = 0
         while True and num_yielded_instances < num_instances:
-            print('Num instances: ', num_instances)
-            print('Num yielded instances: ', num_yielded_instances)
-
             if cur_set_i >= num_files:
                 cur_set_i = 0
                 random.shuffle(files)
