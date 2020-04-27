@@ -13,14 +13,17 @@ NUM_EXAMPLE_IMAGES = 10
 
 def prompt_matlab_script():
     scripts = sorted(os.listdir(GEN_DIR))
-    scripts_prompt = f"Select from the following MATLAB scripts, located in: {GEN_DIR}"
+    scripts_prompt = f"Select from the following MATLAB scripts, located in: {to_local_path(GEN_DIR)}"
+
     for script_i, script_name in enumerate(scripts):
         scripts_prompt += f"\n{script_i}: {script_name}"
+
     return scripts_prompt
 
 
 def get_matlab_selection(num_script):
     scripts = sorted(os.listdir(GEN_DIR))
+
     return scripts[num_script]
 
 
@@ -29,12 +32,13 @@ def save_images(dataset_dir, spectra_loader, num_examples):
     img_directory = os.path.join(dataset_dir, img_dir)
     if img_dir not in os.listdir(dataset_dir):
         try_create_directory(img_directory)
+
     spectra_loader.save_spectra_imgs(img_directory, num_examples)
 
 
 @click.command()
-@click.option('--name', prompt='Spectra are stored in this directory. ')
-@click.option('--version', type=int, default=0, prompt=prompt_matlab_script())
+@click.option('--name', prompt=f'Spectra are stored in this directory --  {to_local_path(DATA_DIR)}/')
+@click.option('--version', type=int, default=0, prompt=prompt_matlab_script() + "   ")
 @click.option('--num-instances', type=int, default=10000, prompt='Number of instances to create')
 @click.option('--shard-size', type=int, default=0, prompt='How many spectra to put in each shard (0 = no shard)')
 @click.option('--num-channels', type=float, prompt=f'Number of channels to generate', default=SpectraGenerator.DEFAULT_NC)
