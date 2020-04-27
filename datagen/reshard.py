@@ -36,7 +36,6 @@ def main(set_name, shard_size):
     train_files.sort()
     test_files.sort()
 
-
     os.mkdir(temp_data_dir)
 
     train_data = []

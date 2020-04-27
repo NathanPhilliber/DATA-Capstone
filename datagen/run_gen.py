@@ -88,7 +88,7 @@ def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s,
 
         print("  Making SpectraLoader...")
         spectra_loader = SpectraLoader(spectra_json=spectra_json)
-        save_images(directory, spectra_loader, math.ceil(NUM_EXAMPLE_IMAGES/num_shards))
+        #save_images(directory, spectra_loader, math.ceil(NUM_EXAMPLE_IMAGES/num_shards))
 
         print(f"  Splitting data...")
         spectra_train, spectra_test = spectra_loader.spectra_train_test_splitter()
