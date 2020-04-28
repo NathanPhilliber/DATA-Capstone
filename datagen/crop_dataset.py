@@ -30,6 +30,8 @@ def crop_dataset(dataset_path, save_classes, new_dataset_path, shard_size):
     if DATAGEN_CONFIG in files:
         files.remove(DATAGEN_CONFIG)
 
+    set_name = os.path.splitext(os.path.basename(dataset_path))[0]
+
     train_files = []
     test_files = []
     for myfile in files:
@@ -45,15 +47,26 @@ def crop_dataset(dataset_path, save_classes, new_dataset_path, shard_size):
     test_files.sort()
 
     gen_info = json.load(open(os.path.join(dataset_path, DATAGEN_CONFIG), "rb"))
-    set_name = os.path.basename(train_files[0].replace(TRAIN_DATASET_PREFIX, ""))
-
     os.mkdir(new_dataset_path)
+
+    total_instances = 0
 
     train_data = []
     train_saved = 0
     for train_i, train_file in enumerate(train_files):
         print(f"Processing {train_file}")
-        data = pickle.load(open(train_file, "rb"))
+        data_all = pickle.load(open(train_file, "rb"))
+        data = []
+
+        # Filter out undesired data here
+        for spectra in data_all:
+            num_peaks = spectra['n']
+
+            if num_peaks in save_classes:
+                data.append(spectra)
+                total_instances += 1
+
+        print(f"Filtered out {len(data_all) - len(data)} spectra.")
         train_data.extend(data)
 
         while len(train_data) >= shard_size:
@@ -75,7 +88,18 @@ def crop_dataset(dataset_path, save_classes, new_dataset_path, shard_size):
     test_saved = 0
     for test_i, test_file in enumerate(test_files):
         print(f"Processing {test_file}")
-        data = pickle.load(open(test_file, "rb"))
+        data_all = pickle.load(open(test_file, "rb"))
+        data = []
+
+        # Filter out undesired data here
+        for spectra in data_all:
+            num_peaks = spectra['n']
+
+            if num_peaks in save_classes:
+                data.append(spectra)
+                total_instances += 1
+
+        print(f"Filtered out {len(data_all) - len(data)} spectra.")
         test_data.extend(data)
 
         while len(test_data) >= shard_size:
@@ -92,6 +116,10 @@ def crop_dataset(dataset_path, save_classes, new_dataset_path, shard_size):
         pickle.dump(test_data, open(
             os.path.join(new_dataset_path, f"{TEST_DATASET_PREFIX}_{set_name}-p{test_saved}.{DATASET_FILE_TYPE}"), "wb"))
         print(f"Saved final testing shard #{test_saved} with {len(test_data)} spectra.")
+
+    print("Writing config")
+    gen_info["num_instances"] = total_instances
+    json.dump(gen_info, open(os.path.join(new_dataset_path, DATAGEN_CONFIG), "w"))
 
     print("Done")
 
