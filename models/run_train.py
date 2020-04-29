@@ -26,7 +26,6 @@ COMPILE_DICT = {'optimizer': 'adam','loss': 'categorical_crossentropy', 'metrics
 OPTIMIZE_PARAMS = {'algorithm': 'bayes', 'spec': {'metric': 'loss', 'objective': 'minimize'}}
 
 GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
-loaded_models = None
 
 
 def format_classification_report(classification_report, peak_labels):
@@ -47,6 +46,7 @@ def get_classification_report(y_test, preds, experiment):
     return classif_report
 
 
+loaded_models = None
 def get_loaded_models():
     """
     Return the loaded_models global or call the import utility on the networks directory if first time
@@ -65,6 +65,8 @@ def main():
 
 
 def get_module(model_module_index):
+    print('model_module_index: ', model_module_index)
+    print('loaded_modules: ', get_loaded_models())
     module, package_name = get_loaded_models()[model_module_index]
     return module, package_name
 
@@ -242,16 +244,18 @@ def get_result_name(model_name, result_name_or_selection):
 
 @main.command(name="continue", help="Continue training an existing run")
 @click.option('--model-name', "-m", prompt=prompt_model_string(), callback=get_model_name, default=None)
+@click.option('--num-channels', "-nc", prompt="Number of Channels: ", type=click.IntRange(min=1))
+@click.option('--num-instances', "-ns", prompt="Number of Instances: ", type=click.IntRange(min=1))
 @click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
 @click.option("--n-epochs", prompt="Number of epochs", default=DEFAULT_N_EPOCHS, type=click.IntRange(min=1))
-def continue_train_model(model_name, dataset_name, n_epochs, model_module_index=None):
+def continue_train_model(model_name, num_channels, num_instances, dataset_name, n_epochs, model_module_index=None):
     result_name = get_result_name(model_name, input(prompt_previous_run(model_name) + ": "))  # If you can figure out how to add this to Click args, then please do
 
     print("Using dataset:", dataset_name)
     print("Using model:", model_name)
     print("Using result:", result_name)
 
-    dataset_config, model = initialize_model(dataset_name, model_name, model_module_index)
+    dataset_config, model = initialize_model(dataset_name, model_name, num_channels, num_instances, model_module_index)
     model.persist(result_name)
 
     rocket = None
@@ -260,7 +264,8 @@ def continue_train_model(model_name, dataset_name, n_epochs, model_module_index=
         rocket = CometConnection()
         rocket.persist(comet_config_path)
 
-    model = train_model(model, dataset_name, dataset_config, model.batch_size, n_epochs)
+    model = train_model(model, dataset_name, dataset_config, model.batch_size, n_epochs,
+                        num_channels=num_channels, num_instances=num_instances)
 
     save_loc = model.save(model_name, dataset_name)
     print(f"Saved model to {to_local_path(save_loc)}")
