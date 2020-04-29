@@ -2,7 +2,9 @@ import boto3
 import os
 import json
 
+DEFAULT_BUCKET = "nasa-capstone-data-storage"
 META_DATA_FILE_NAME = 'gen_info.json'
+MAX_RETRIES = 3
 
 
 def retrieve_object_key(meta_data, filename):
@@ -35,18 +37,21 @@ class S3:
         self.client = boto3.client('s3')
         self.bucket = bucket
 
-    def download_from_meta_data(self, path_to_meta_data, download_location):
+    def download_from_metadata_file(self, path_to_metadata, download_location, filename=''):
         """
         Downloads a dataset that was generated with a specific configuration provided in a meta data file.
 
-        :param path_to_meta_data: The path to the gen_info.json file for the dataset
+        :param path_to_metadata: The path to the gen_info.json file for the dataset
         :param download_location: The path to the directory where the files will be downloaded
         :return: None
         """
-        with open(path_to_meta_data) as meta_data_file:
-            meta_data = json.load(meta_data_file)
-            base_key = retrieve_object_key('', meta_data)
-            return self.download(base_key, download_location)
+        with open(path_to_metadata) as metadata_file:
+            metadata = json.load(metadata_file)
+            return self.download_from_metadata_json(metadata, download_location, filename)
+
+    def download_from_metadata_json(self, metadata, download_location, filename=''):
+        base_key = retrieve_object_key(metadata, filename)
+        return self.download(base_key, download_location)
 
     def download(self, base_key, download_location):
         """
@@ -56,12 +61,11 @@ class S3:
         :return: None
         """
         data_set_parts = self.client.list_objects_v2(Bucket=self.bucket, Prefix=base_key)
-
         for part in data_set_parts['Contents']:
             part_key = part['Key']
             part_name = part_key.split('/')[-1]
             self.client\
-                .download_file(BUCKET_NAME, part_key, os.path.join(download_location, part_name))
+                .download_file(self.bucket, part_key, os.path.join(download_location, part_name))
 
     def upload_json(self, json, meta_data, filename):
         """
@@ -82,6 +86,8 @@ class S3:
         with open(os.path.join(path_to_data, META_DATA_FILE_NAME)) as meta_data_file:
             meta_data = json.load(meta_data_file)
             for file_name in os.listdir(path_to_data):
-                object_key = retrieve_object_key(file_name, meta_data)
+                if file_name == META_DATA_FILE_NAME:
+                    continue
+                object_key = retrieve_object_key(meta_data, file_name)
                 self.client\
                     .upload_file(os.path.join(path_to_data, file_name), self.bucket, object_key)

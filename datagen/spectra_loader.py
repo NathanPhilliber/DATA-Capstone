@@ -1,11 +1,15 @@
 from utils import *
 from datagen.spectrum import Spectrum
+from s3 import S3, DEFAULT_BUCKET, MAX_RETRIES
+
 import pickle
 import numpy as np
 import os
+import time
 from sklearn.model_selection import train_test_split
 import re
 import json
+import traceback
 
 
 class SpectraLoader:
@@ -14,6 +18,7 @@ class SpectraLoader:
         self.spectra = None
         self.dataset_name = dataset_name
         self.subset_prefix = subset_prefix
+        self.s3 = S3(DEFAULT_BUCKET)
 
         if eval_now and spectra_json is not None:
             self.spectra = self.load_from_json(spectra_json)
@@ -22,7 +27,29 @@ class SpectraLoader:
             self.spectra = self.load_from_dir(dataset_name, subset_prefix)
 
     def get_data_files(self):
-        return SpectraLoader.collect_sharded_files(self.dataset_name, self.subset_prefix)
+        retries = 0
+        data_files = SpectraLoader.collect_sharded_files(self.dataset_name, self.subset_prefix)
+
+        while retries < MAX_RETRIES and not data_files:
+            print(data_files)
+            try:
+                print(f'Downloading {self.dataset_name} from S3... Attempt {retries + 1} out of {MAX_RETRIES}')
+                self.s3.download_from_metadata_json(
+                    SpectraLoader.read_dataset_config(self.dataset_name),
+                    SpectraLoader.get_dataset_path(self.dataset_name))
+
+                data_files = SpectraLoader.collect_sharded_files(self.dataset_name, self.subset_prefix)
+            except:
+                traceback.print_exc()
+                if retries + 1 != MAX_RETRIES:
+                    time.sleep(5 * (retries + 1))
+                continue
+            finally:
+                retries += 1
+        if retries == MAX_RETRIES:
+            raise Exception('Failed to retrieve data files.')
+
+        return data_files
 
     def load_from_dir(self, dataset_name, subset_prefix):
         self.dataset_name = dataset_name
@@ -89,10 +116,12 @@ class SpectraLoader:
 
     @staticmethod
     def collect_sharded_files(dataset_name, subset):
-        dataset_path = os.path.join(DATA_DIR, dataset_name)
-
+        dataset_path = SpectraLoader.get_dataset_path(dataset_name)
         files = os.listdir(dataset_path)
         files_filtered = sorted([os.path.join(dataset_path, file)
-                          for file in files if re.match(f"{subset}_.+.{DATASET_FILE_TYPE}", file)])
-
+                                 for file in files if re.match(f"{subset}_.+.{DATASET_FILE_TYPE}", file)])
         return files_filtered
+
+    @staticmethod
+    def get_dataset_path(dataset_name):
+        return os.path.join(DATA_DIR, dataset_name)
