@@ -1,10 +1,11 @@
 from utils import *
-from datagen.spectra_generator import LocalSpectraGenerator
+from datagen.spectra_generator import LocalSpectraGenerator, S3SpectraGenerator
 from datagen.spectra_loader import SpectraLoader
 import click
 import math
 import os
 import math
+from datagen.spectra_generator import SpectraGenerator
 
 
 MAX_REC_SHARD_SIZE = 10000
@@ -53,8 +54,9 @@ def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s,
     check_clear_directory(directory)
 
     print("Creating generator...")
-    spectra_generator = LocalSpectraGenerator(matlab_script=matlab_script, nc=num_channels, n_max=n_max, n_max_s=n_max_s, scale=scale,
-                                         omega_shift=omega_shift, dg=dg, dgs=dgs)
+    s3_dir = 'nasa-capstone-data-storage'
+    spectra_generator = S3SpectraGenerator(s3_dir, matlab_script=matlab_script, nc=num_channels, n_max=n_max, n_max_s=n_max_s,
+                                              scale=scale, omega_shift=omega_shift, dg=dg, dgs=dgs)
 
     # If we don't want to shard, set to num_instances to make num_shards = 1
     if shard_size == 0:
@@ -100,7 +102,7 @@ def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s,
             train_name = f'{TRAIN_DATASET_PREFIX}_{name}.pkl' if shard_size == num_instances else \
                 f'{TRAIN_DATASET_PREFIX}_{name}-p{num_train_shards_saved + 1}.{DATASET_FILE_TYPE}'
 
-            SpectraGenerator.save_spectra(spectra_train_json, train_name, directory)
+            spectra_generator.save_spectra(spectra_train_json, train_name)
             print(f"    Saved {len(spectra_train_json)} spectra")
             num_train_shards_saved += 1
             num_saved += len(spectra_train_json)
@@ -112,13 +114,13 @@ def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s,
             test_name = f'{TEST_DATASET_PREFIX}_{name}.pkl' if shard_size == num_instances else \
                 f'{TEST_DATASET_PREFIX}_{name}-p{num_test_shards_saved + 1}.{DATASET_FILE_TYPE}'
 
-            SpectraGenerator.save_spectra(spectra_test_json, test_name, directory)
+            spectra_generator.save_spectra(spectra_test_json, test_name)
             print(f"    Saved {len(spectra_test_json)} spectra")
             num_test_shards_saved += 1
             num_saved += len(spectra_test_json)
 
     print("\nSaving info...")
-    spectra_generator.save_metadata(num_instances, directory)
+    spectra_generator.save_metadata(directory)
     print(f"Saved {num_saved} spectra to {directory}.\nDone.")
 
 
