@@ -4,7 +4,7 @@ import json
 
 DEFAULT_BUCKET = "nasa-capstone-data-storage"
 META_DATA_FILE_NAME = 'gen_info.json'
-
+MAX_RETRIES = 3
 
 def retrieve_object_key(meta_data, filename):
     """
