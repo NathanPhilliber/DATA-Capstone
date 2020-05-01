@@ -4,7 +4,6 @@ import json
 
 DEFAULT_BUCKET = "nasa-capstone-data-storage"
 META_DATA_FILE_NAME = 'gen_info.json'
-MAX_RETRIES = 3
 
 
 def retrieve_object_key(meta_data, filename):
@@ -61,11 +60,22 @@ class S3:
         :return: None
         """
         data_set_parts = self.client.list_objects_v2(Bucket=self.bucket, Prefix=base_key)
+        
         for part in data_set_parts['Contents']:
             part_key = part['Key']
             part_name = part_key.split('/')[-1]
             self.client\
                 .download_file(self.bucket, part_key, os.path.join(download_location, part_name))
+
+    def upload_json(self, json, meta_data, filename):
+        """
+        Creates an S3 object from a json string and Meta data.
+        :param json: JSON string
+        :param meta_data: Meta data
+        """
+        object_key = retrieve_object_key(meta_data, filename)
+        self.client\
+            .put_object(Bucket=self.bucket, Key=object_key, Body=json)
 
     def upload_json(self, json, meta_data, filename):
         """
