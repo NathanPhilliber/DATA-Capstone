@@ -3,6 +3,8 @@ from utils import *
 import pickle
 import json
 import click
+from datagen.loadmatlab import mat_to_spectra
+
 
 """
 This is a 'quick and dirty' script to split a sharded dataset into a subset
@@ -12,7 +14,7 @@ This is a 'quick and dirty' script to split a sharded dataset into a subset
 @click.option('--set-name', prompt='Name of dataset to crop from')
 @click.option('--new-set-name', prompt='Name of where to save new dataset')
 @click.option('--shard-size', type=int, prompt='How many spectra to put in each shard')
-@click.option('--action', type=str, prompt='"crop" or "reclass"')
+@click.option('--action', type=str, prompt='"crop" or "reclass" or "convert"')
 def main(set_name, new_set_name, shard_size, action):
     dataset_path = os.path.join(DATA_DIR, set_name)
     new_dataset_path = os.path.join(DATA_DIR, new_set_name)
@@ -28,6 +30,49 @@ def main(set_name, new_set_name, shard_size, action):
         print("Saving groups:", class_groups)
         reclass_dataset(dataset_path=dataset_path, class_groups=class_groups, new_dataset_path=new_dataset_path,
                         shard_size=shard_size)
+    if action == 'convert':
+        print("Converting matlab files")
+        matlab_path = os.path.join(DATA_ROOT, "matlab", set_name)
+        convert_matlab_collection(matlab_collection_path=matlab_path, new_dataset_path=new_dataset_path, shard_size=shard_size)
+
+
+def convert_matlab_collection(matlab_collection_path, new_dataset_path, shard_size):
+    if not os.path.exists(matlab_collection_path):
+        print(f"{matlab_collection_path} does not exist.")
+    files = os.listdir(matlab_collection_path)
+    files = [os.path.join(matlab_collection_path, file) for file in files]
+
+    set_name = os.path.splitext(os.path.basename(new_dataset_path))[0]
+
+    spectras = []
+    for matfile in files:
+        print(f"Converting mat file: {matfile}")
+        spectrum = mat_to_spectra(matfile)
+        spectras.append(spectrum)
+
+    os.mkdir(new_dataset_path)
+
+    total_saved = 0
+    shard_num = 0
+    while len(spectras) >= shard_size:
+            save_data = spectras[:shard_size]
+            spectras = spectras[shard_size:]
+
+            shard_num += 1
+            total_saved += len(save_data)
+
+            pickle.dump(save_data, open(
+                os.path.join(new_dataset_path, f"{TRAIN_DATASET_PREFIX}_{set_name}-p{shard_num}.{DATASET_FILE_TYPE}"),
+                "wb"))
+            print(f"Saved shard #{shard_num} with {len(save_data)} spectra.")
+
+    if len(spectras) > 0:
+        total_saved += len(spectras)
+        pickle.dump(spectras, open(
+            os.path.join(new_dataset_path, f"{TRAIN_DATASET_PREFIX}_{set_name}-p{shard_num}.{DATASET_FILE_TYPE}"),
+            "wb"))
+        print(f"Saved final shard #{shard_num} with {len(spectras)} spectra.")
+
 
 
 def reclass_dataset(dataset_path, class_groups, new_dataset_path, shard_size):

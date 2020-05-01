@@ -133,8 +133,11 @@ def prompt_dataset_string():
     msg += f"\nThe following datasets were found in {to_local_path(DATA_DIR)}:\n"
     msg += f"{'Selection':10} {'Set Name':15} {'Num Spectra':15} {'Num Channels':15}\n"
     for dir_i, dir_name in enumerate(data_dirs):
-        config = SpectraLoader.read_dataset_config(dir_name)
-        msg += f"  {dir_i:6}:  {dir_name:15} {format(config['num_instances'], ','):15} {int(config['num_channels']):2}\n"
+        try:
+            config = SpectraLoader.read_dataset_config(dir_name)
+            msg += f"  {dir_i:6}:  {dir_name:15} {format(config['num_instances'], ','):15} {int(config['num_channels']):2}\n"
+        except:
+            continue
 
     msg += "\nSelect dataset to use"
 
