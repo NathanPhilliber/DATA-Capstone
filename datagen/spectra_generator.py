@@ -49,7 +49,6 @@ class SpectraGenerator(ABC):
         self.matlab_mapper = {'spectra_generator_v1.m': self.engine.spectra_generator_v1,
                               'spectra_generator_v2.m': self.engine.spectra_generator_v2}
 
-
     def generate_spectrum(self):
         matlab_method = self.matlab_mapper[self.matlab_script]
         n, dm, peak_locations = matlab_method(float(self.n_max), float(self.n_max_s),
