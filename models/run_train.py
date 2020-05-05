@@ -18,7 +18,7 @@ A command line program to train our neural networks.
 Use:
    > 'python run_train --help'
 for more information about how to run this script.
- 
+
 """
 
 
@@ -188,7 +188,7 @@ def prompt_model_string():
 def get_model_name(ctx, param, model_name_or_selection):
     list_i = 0
     names = []
-    module_indices = []
+    module_indices = {}
     loaded_models = get_loaded_models()
 
     for module_i, (module, module_name) in enumerate(loaded_models):
@@ -197,7 +197,8 @@ def get_model_name(ctx, param, model_name_or_selection):
         for class_i, class_name in enumerate(classes):
             list_i += 1
             names.append(class_name)
-            module_indices.append(module_i)
+            #module_indices.append(module_i)
+            module_indices[class_name] = module_i
 
     try:
         selection = int(model_name_or_selection)
@@ -212,7 +213,7 @@ def get_model_name(ctx, param, model_name_or_selection):
         raise Exception("Could not find model with model_name='%s' in '%s'" % (model_name, NETWORKS_DIR))
 
     ctx.params["model_name"] = model_name
-    ctx.params["model_module_index"] = module_indices[names.index(model_name)]
+    ctx.params["model_module_index"] = module_indices[model_name]
     return model_name
 
 
@@ -258,7 +259,7 @@ def continue_train_model(model_name, num_channels, num_instances, dataset_name, 
     print("Using model:", model_name)
     print("Using result:", result_name)
 
-    dataset_config, model = initialize_model(dataset_name, model_name, num_channels, num_instances, model_module_index)
+    dataset_config, model = initialize_model(dataset_name, model_name, model_module_index, num_channels, num_instances)
     model.persist(result_name)
 
     rocket = None
