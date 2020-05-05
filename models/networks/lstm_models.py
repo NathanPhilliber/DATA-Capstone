@@ -3,6 +3,7 @@ from tensorflow.keras.layers import Dense, LSTM, BatchNormalization, Dropout, \
     Conv1D, Bidirectional
 from models.networks.abstract_models.attention import Attention
 from models.networks.abstract_models.base_model import BaseModel
+from models.networks.abstract_models.channel_padder import ChannelPadder
 
 
 class LSTMModel(BaseModel):
@@ -49,6 +50,7 @@ class GoogleModel(BaseModel):
         """
         num_attention = num_timesteps - 8
         model = Sequential()
+        model.add(ChannelPadder(num_channels))
         model.add(Conv1D(params['conv_1'], 5, input_shape=(num_timesteps, num_channels)))
         model.add(BatchNormalization())
         model.add(Conv1D(params['conv_2'], 5))
