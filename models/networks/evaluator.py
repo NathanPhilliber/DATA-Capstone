@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.metrics import roc_curve, roc_auc_score
 import matplotlib.pyplot as plt
 import seaborn as sns
+from utils import *
 
 
 class EvaluationReport():
@@ -50,6 +51,7 @@ class EvaluationReport():
         for i, np in enumerate(self.labels):
             self.plot_mean_pred_prob(np, axes[i])
         plt.subplots_adjust(hspace=0.3)
+        return plt
 
     def plot_pred_prob(self, peak_probs, num_peaks=None, ax=None, title_extension=None, y_extension=''):
         title = title_extension
@@ -74,30 +76,33 @@ class EvaluationReport():
         for i in range(len(indices)):
             sample_idx = indices[i]
             sample_probs = self.probs[sample_idx]
-            sample_peak_locs = self.peak_locs[sample_idx]
             self.plot_pred_prob(sample_probs, num_peaks, ax=axes[i][0], title_extension=title_extension)
 
             for l in range(num_channels):
                 self.test_spectra_loader.spectra[sample_idx].plot_channel(l, ax=axes[i][l + 1])
 
         plt.subplots_adjust(hspace=0.4)
+        return plt
 
     def plot_predicted_probs_misclassified(self, num_peaks, num_channels, num_examples):
         subset_num_peaks_idx = np.where((self.y_true_num == num_peaks) & (self.preds != num_peaks))[0]
         sample_idx = np.random.choice(subset_num_peaks_idx, num_examples)
-        self.plot_predicted_probs(sample_idx, num_channels, num_peaks,
+        return self.plot_predicted_probs(sample_idx, num_channels, num_peaks,
                                   f'Misclassified Predicted Probabilities, True Num Peaks: {num_peaks}')
-        plt.show()
 
-    def plot_predicted_probs_misclassified_per_peak(self, num_channels, num_examples):
+    def plot_predicted_probs_misclassified_per_peak(self, num_channels, num_examples, directory):
         for np in self.labels:
             try:
-                self.plot_predicted_probs_misclassified(np, num_channels, num_examples)
+                misclass = self.plot_predicted_probs_misclassified(np, num_channels, num_examples)
+                misclass.savefig(os.path.join(directory, f'misclassified_{np}.png'))
             except:
                 print(f'No misclassified {np} peaks.')
 
 
-def complete_evaluation(evaluation_report, num_channels_to_show, num_examples_per_peak):
-    return evaluation_report.plot_roc_curves()
-    #evaluation_report.plot_mean_pred_probs()
-    #evaluation_report.plot_predicted_probs_misclassified_per_peak(num_channels_to_show, num_examples_per_peak)
+def complete_evaluation(evaluation_report, num_channels_to_show, num_examples_per_peak, directory):
+    try_create_directory(directory)
+    roc_curve_plot = evaluation_report.plot_roc_curves()
+    roc_curve_plot.savefig(os.path.join(directory, 'roc_curve.png'))
+    mean_preds = evaluation_report.plot_mean_pred_probs()
+    mean_preds.savefig(os.path.join(directory, 'mean_preds.png'))
+    evaluation_report.plot_predicted_probs_misclassified_per_peak(num_channels_to_show, num_examples_per_peak, directory)

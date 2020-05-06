@@ -130,6 +130,7 @@ class BaseModel(ABC):
         return save_dir
 
     def persist(self, dirname, result_dir=MODEL_RES_DIR):
+        #MODEL_RES_DIR
         model_directory = os.path.join(result_dir, dirname)
 
         self.weights_path = os.path.join(model_directory, WEIGHTS_FILENAME)

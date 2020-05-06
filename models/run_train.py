@@ -126,14 +126,14 @@ def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, num_c
     return model
 
 
-def evaluate_model(model, dataset_name, dataset_config, num_channels, num_instances):
+def evaluate_model(model, dataset_name, dataset_config, num_channels, num_instances, directory):
     use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
     print('use_generator: ', use_generator)
     print('Dataset name: ', dataset_name)
     spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, num_channels=num_channels, num_instances=num_instances,
                                      use_generator=False)
     evaluator = EvaluationReport(model, spectra_pp)
-    img = complete_evaluation(evaluator, 3, 5)
+    img = complete_evaluation(evaluator, 3, 10, directory)
     return img
 
 
@@ -311,28 +311,13 @@ def run_evaluate_model(model_name, num_channels, num_instances, dataset_name, co
     rocket = CometConnection(comet_name=comet_name, dataset_config=dataset_config)
     model.persist(result_name)
     print('here')
-    img = evaluate_model(model, dataset_name, dataset_config, num_channels, num_instances)
-    rocket.log_imgs(img)
-    #
-    # rocket = None
-    # comet_config_path = os.path.join(MODEL_RES_DIR, result_name, COMET_SAVE_FILENAME)
-    # if os.path.exists(comet_config_path):
-    #     rocket = CometConnection()
-    #     rocket.persist(comet_config_path)
-    #
-    # model = train_model(model, dataset_name, dataset_config, model.batch_size, n_epochs,
-    #                     num_channels=num_channels, num_instances=num_instances)
-    #
-    # save_loc = model.save(model_name, dataset_name)
-    # print(f"Saved model to {to_local_path(save_loc)}")
-    #
-    # if rocket is not None:
-    #     y_true, y_pred = model.preds
-    #
-    #     labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
-    #     rocket.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
-    #
-    #     rocket.save(save_loc)
+
+    dir = os.path.join(MODEL_RES_DIR, result_name)
+    dir_imgs = os.path.join(dir, 'eval')
+    evaluate_model(model, dataset_name, dataset_config, num_channels, num_instances, dir_imgs)
+    for img in os.listdir(dir_imgs):
+        image_path = os.path.join(dir_imgs, img)
+        rocket.experiment.log_image(image_path)
 
 
 @main.command(name="new", help="Train a new model")
