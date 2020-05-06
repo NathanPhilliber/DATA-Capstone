@@ -142,6 +142,7 @@ class BaseModel(ABC):
         self.epochs = info['epochs']
         self.history = info['history']
         self.test_results = info['test_results']
+        self._fit_preinit(self.compile_dict)
 
     @staticmethod
     def _merge_histories(hist1, hist2):

@@ -22,16 +22,18 @@ class SpectraPreprocessor:
         self.one_hot_encoder.fit(y_test)
 
     def get_data(self, loader):
-        dm = np.array(loader.get_dm())
-        X = dm.reshape(dm.shape[0], dm.shape[2], dm.shape[1])
+        dm = loader.get_dm()
+        dm_reshaped = np.array(dm[:self.num_instances])[:, :self.num_channels, :]
+        # TODO: Correct?
+        X = dm_reshaped.reshape(dm_reshaped.shape[0], dm_reshaped.shape[2], dm_reshaped.shape[1])
         # Subset X.
         # TODO: Check if sufficient number of channels.
-        X_reshaped = X[:self.num_instances, :, :self.num_channels]
+        #X_reshaped = X[:self.num_instances, :, :self.num_channels]
         y = np.array(loader.get_n())
         y = y.reshape(y.shape[0], 1)
         y_reshaped = y[:self.num_instances, :]
-        del X, y
-        return X_reshaped, y_reshaped
+        del y, dm
+        return X, y_reshaped
 
     def transform(self, encoded=False):
         X_train, y_train = self.transform_train(encoded=encoded)

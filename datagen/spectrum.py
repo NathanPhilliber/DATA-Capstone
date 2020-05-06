@@ -23,8 +23,8 @@ class Spectrum:
     def get_num_timesteps(self):
         return len(self.dm[0])
 
-    def plot_channel(self, channel_number):
-        sns.lineplot(x=np.linspace(0, 1, len(self.dm[0])), y=self.dm[channel_number])
+    def plot_channel(self, channel_number, ax):
+        sns.lineplot(x=np.linspace(0, 1, len(self.dm[0])), y=self.dm[channel_number], ax=ax)
         try:
             peak_locs = self.peak_locations[0]
             p = peak_locs[0]
@@ -32,7 +32,8 @@ class Spectrum:
             peak_locs = [self.peak_locations]
 
         for peak in peak_locs:
-            plt.axvline(peak, 0, 1, c='red', alpha=0.6)
+            ax.axvline(peak, 0, 1, c='red', alpha=0.6)
+        return plt
 
     def plot_channels(self, size):
         n_rows = max(math.ceil((self.num_channels + 0.5) / 2), 1)
