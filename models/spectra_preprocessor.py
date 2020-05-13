@@ -35,9 +35,15 @@ class SpectraPreprocessor:
         del y, dm
         return X, y_reshaped
 
-    def transform(self, encoded=False):
+    def pad_channels(self, X, additional_nc, mode='symmetric'):
+        return np.pad(X, ((0, 0), (0, 0), (0, additional_nc)), mode)
+
+    def transform(self, pad_nc=None, encoded=False):
         X_train, y_train = self.transform_train(encoded=encoded)
         X_test, y_test = self.transform_test(encoded=encoded)
+        if pad_nc is not None:
+            X_train = self.pad_channels(X_train, pad_nc - self.num_channels)
+            X_test = self.pad_channels(X_test, pad_nc - self.num_channels)
         return X_train, y_train, X_test, y_test
 
     def transform_train(self, encoded=False):
