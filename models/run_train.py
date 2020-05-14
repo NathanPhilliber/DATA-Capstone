@@ -110,12 +110,11 @@ def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, num_c
     print('use_generator: ', use_generator)
     spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, num_channels=num_channels, num_instances=num_instances,
                                      use_generator=use_generator)
-
+    print('SpectraPreprocessor initialized')
     if use_generator:
         print("\nUsing fit generator.\n")
-        X_test, y_test = spectra_pp.transform_test(encoded=True)
-        model.fit_generator(spectra_pp, num_instances, X_test,
-                            y_test, batch_size=batch_size, epochs=n_epochs, encoded=True,
+        #X_test, y_test = spectra_pp.transform_test(encoded=True)
+        model.fit_generator(spectra_pp, num_instances, batch_size=batch_size, epochs=n_epochs, encoded=True,
                             compile_dict=compile_dict)
 
     else:
@@ -149,6 +148,7 @@ def prompt_dataset_string():
             config = SpectraLoader.read_dataset_config(dir_name)
             msg += f"  {dir_i:6}:  {dir_name:15} {format(config['num_instances'], ','):15} {int(config['num_channels']):2}\n"
         except:
+            print("Failed to load " + dir_name)
             continue
 
     msg += "\nSelect dataset to use"

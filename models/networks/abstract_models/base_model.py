@@ -59,22 +59,27 @@ class BaseModel(ABC):
         self.keras_model.fit(X_train, y_train, validation_split=validation_size, epochs=epochs, batch_size=batch_size)
         self._fit_complete(X_test, y_test, batch_size, epochs, validation_size)
 
-    def fit_generator(self, preprocessor, train_size, X_test, y_test, batch_size, epochs, compile_dict=None,
+    def fit_generator(self, preprocessor, train_size, batch_size, epochs, compile_dict=None,
                       validation_size=0.20, encoded=False):
 
         self._fit_preinit(compile_dict)
 
-        self.keras_model.fit_generator(preprocessor.train_generator(batch_size=batch_size, encoded=encoded),
-                                       steps_per_epoch=train_size//batch_size, validation_data=(X_test, y_test),
+        num_test = preprocessor.get_num_test_instances()
+
+        self.keras_model.fit(preprocessor.train_generator(batch_size=batch_size, encoded=encoded),
+                                       #steps_per_epoch=train_size//batch_size, validation_data=(X_test, y_test),
+                                       steps_per_epoch=train_size // batch_size,
+                                       validation_data=preprocessor.test_generator(batch_size=batch_size, encoded=encoded),
+                                       validation_steps=num_test // batch_size,
                                        epochs=epochs)
 
-        self._fit_complete(X_test, y_test, batch_size, epochs, validation_size)
+        #self._fit_complete(generator=preprocessor.test_generator(batch_size=batch_size, encoded=encoded), batch_size=batch_size, epochs=epochs, validation_size=validation_size, num_test=num_test)
 
-    def _fit_complete(self, X_test, y_test, batch_size, epochs, validation_size=0.20):
+    def _fit_complete(self, X_test=None, y_test=None, generator=None, batch_size=0, epochs=0, validation_size=0.20, num_test=0):
         self.batch_size = batch_size
         self.epochs += epochs
         self.validation_size = validation_size
-        self.test_results = self.evaluate(X_test, y_test)
+        self.test_results = self.evaluate(X_test=X_test, y_test=y_test, generator=generator, steps=num_test//batch_size)
         self.history = BaseModel._merge_histories(self.history, self.get_model_history())
         self.preds = y_test, self.get_preds(X_test)
 
@@ -92,9 +97,15 @@ class BaseModel(ABC):
             history[key] = [float(round(v, 5)) for v in value]
         return history
 
-    def evaluate(self, X_test, y_test):
+    def evaluate(self, X_test=None, y_test=None, generator=None, steps=None):
 
-        eval_res = self.keras_model.evaluate(X_test, y_test)
+        if X_test is not None and y_test is not None:
+            eval_res = self.keras_model.evaluate(X_test, y_test)
+        elif generator is not None:
+            eval_res = self.keras_model.evaluate(generator, steps=steps)
+        else:
+            raise Exception("No inputs")
+
         results = {"metrics_names": self.keras_model.metrics_names,
                    "metrics": [float(val) for val in eval_res]}
         return results
