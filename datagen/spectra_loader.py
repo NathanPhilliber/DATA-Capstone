@@ -52,6 +52,9 @@ class SpectraLoader:
         return data_files
 
     def load_from_dir(self, dataset_name, subset_prefix):
+        print('dataset_name: ', dataset_name)
+        print('subset_name: ', subset_prefix)
+
         self.dataset_name = dataset_name
         self.subset_prefix = subset_prefix
 

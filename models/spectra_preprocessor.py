@@ -91,8 +91,7 @@ class SpectraPreprocessor:
                 spectra_batch_y = spectra_y[:batch_size]
                 spectra_x = spectra_x[batch_size:]
                 spectra_y = spectra_y[batch_size:]
-
-
+                
                 yield spectra_batch_x, spectra_batch_y
 
     def get_num_training_files(self):
