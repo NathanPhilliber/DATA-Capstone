@@ -147,6 +147,7 @@ def prompt_dataset_string():
         try:
             config = SpectraLoader.read_dataset_config(dir_name)
             msg += f"  {dir_i:6}:  {dir_name:15} {format(config['num_instances'], ','):15} {int(config['num_channels']):2}\n"
+
         except:
             print("Failed to load " + dir_name)
             continue
@@ -299,8 +300,7 @@ def continue_train_model(model_name, num_channels, num_instances, dataset_name, 
 @click.option('--num-channels', "-nc", prompt="Number of Channels: ", type=click.IntRange(min=1))
 @click.option('--num-instances', "-ns", prompt="Number of Instances: ", type=click.IntRange(min=1))
 @click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
-@click.option("--comet-name", "-cn", prompt="What would you like to call this run on comet?", default=f"model-{str(datetime.now().strftime('%m%d.%H%M'))}")
-def run_evaluate_model(model_name, num_channels, num_instances, dataset_name, comet_name, model_module_index=None):
+def run_evaluate_model(model_name, num_channels, num_instances, dataset_name, model_module_index=None):
 
     result_name = get_result_name(model_name, input(prompt_previous_run(model_name) + ": "))  # If you can figure out how to add this to Click args, then please do
     print("Using dataset:", dataset_name)
@@ -308,16 +308,21 @@ def run_evaluate_model(model_name, num_channels, num_instances, dataset_name, co
     print("Using result:", result_name)
 
     dataset_config, model = initialize_model(dataset_name, model_name, model_module_index, num_channels, num_instances)
-    rocket = CometConnection(comet_name=comet_name, dataset_config=dataset_config)
-    model.persist(result_name)
-    print('here')
+    rocket = None
+    comet_config_path = os.path.join(MODEL_RES_DIR, result_name, COMET_SAVE_FILENAME)
+    if os.path.exists(comet_config_path):
+        rocket = CometConnection()
+        rocket.persist(comet_config_path)
 
+    model.persist(result_name)
     dir = os.path.join(MODEL_RES_DIR, result_name)
     dir_imgs = os.path.join(dir, 'eval')
     evaluate_model(model, dataset_name, dataset_config, num_channels, num_instances, dir_imgs)
-    for img in os.listdir(dir_imgs):
-        image_path = os.path.join(dir_imgs, img)
-        rocket.experiment.log_image(image_path)
+
+    if rocket is not None:
+        for img in os.listdir(dir_imgs):
+            image_path = os.path.join(dir_imgs, img)
+            rocket.experiment.log_image(image_path)
 
 
 @main.command(name="new", help="Train a new model")
