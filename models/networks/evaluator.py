@@ -3,13 +3,29 @@ import numpy as np
 from sklearn.metrics import roc_curve, roc_auc_score
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.metrics import classification_report
+import numpy as np
 from utils import *
 
 
-class EvaluationReport():
+def format_classification_report(classification_report, peak_labels):
+    return {f'{p}_test_{metric}': metric_val for p in peak_labels for metric, metric_val in
+            classification_report[p].items()}
+
+
+def get_classification_report(test_formatted, preds_formatted, peak_labels):
+    classif_report = classification_report(test_formatted, preds_formatted, target_names=peak_labels, output_dict=True)
+    formatted = format_classification_report(classif_report, peak_labels)
+    # if experiment is not None:
+    #     experiment.log_metrics(formatted)
+    #     experiment.log_text(classif_report_str)
+    return formatted
+
+
+class EvaluationReport:
     def __init__(self, model, spectra_preprocessor, labels=None):
         self.model = model
-        _, _, self.X_test, self.y_test = spectra_preprocessor.transform(encoded=True)
+        self.X_test, self.y_test = spectra_preprocessor.transform_test()
         self.test_spectra_loader = spectra_preprocessor.test_spectra_loader
         self.peak_locs = self.test_spectra_loader.get_peak_locations()
         self.labels = labels
@@ -18,6 +34,9 @@ class EvaluationReport():
         self.probs = self.model.keras_model.predict_proba(self.X_test)
         self.preds = self.probs.argmax(axis=1) + 1
         self.y_true_num = self.y_test.argmax(axis=1) + 1
+
+    def get_eval_classification_report(self):
+        return get_classification_report(self.y_true_num, self.preds, self.labels)
 
     def plot_roc_curves(self, figsize=(9, 7)):
         plt.figure(figsize=figsize)

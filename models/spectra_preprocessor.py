@@ -1,7 +1,6 @@
 from utils import *
 from datagen.spectra_loader import SpectraLoader
 import json
-from sklearn.preprocessing import OneHotEncoder
 import numpy as np
 import random
 from keras.utils import to_categorical
@@ -9,8 +8,9 @@ from keras.utils import to_categorical
 
 class SpectraPreprocessor:
 
-    def __init__(self, dataset_name, num_channels, num_instances, use_generator=False):
-        self.train_spectra_loader = SpectraLoader(dataset_name=dataset_name, subset_prefix=TRAIN_DATASET_PREFIX, eval_now=not use_generator)
+    def __init__(self, dataset_name, num_channels, num_instances, use_generator=False, load_train=True):
+        if load_train:
+            self.train_spectra_loader = SpectraLoader(dataset_name=dataset_name, subset_prefix=TRAIN_DATASET_PREFIX, eval_now=not use_generator)
         self.test_spectra_loader = SpectraLoader(dataset_name=dataset_name, subset_prefix=TEST_DATASET_PREFIX, eval_now=not use_generator)
         self.datagen_config = json.load(open(os.path.join(DATA_DIR, dataset_name, DATAGEN_CONFIG), "r"))
         self.max_nc = self.datagen_config['num_channels']
@@ -18,28 +18,16 @@ class SpectraPreprocessor:
         self.num_instances = num_instances
         self.num_test_instances = None
 
-        #print("Setting up one hot encoder")
-        ## TODO: Fix this.
-        #_, y_test = self.get_data(self.test_spectra_loader)
-        #self.one_hot_encoder.fit(y_test)
-        #print("Finished preprocessor")
-
     def get_data(self, loader):
+        # TODO: Correct?
         dm = loader.get_dm()
         dm_reshaped = np.array(dm[:self.num_instances])[:, :self.num_channels, :]
-        # TODO: Correct?
         X = dm_reshaped.reshape(dm_reshaped.shape[0], dm_reshaped.shape[2], dm_reshaped.shape[1])
-        # Subset X.
-        # TODO: Check if sufficient number of channels.
-        #X_reshaped = X[:self.num_instances, :, :self.num_channels]
         y = np.array(loader.get_n())
         y = y.reshape(y.shape[0], 1)
-        y_reshaped = to_categorical(y[:self.num_instances, :])
+        y_reshaped = to_categorical(y[:self.num_instances, :])[:, 1:]
         del y, dm
-        print('----- y_reshaped: ', y_reshaped.shape)
-        print('----- y-2 ', y_reshaped[:, 1:].shape)
-
-        return X, y_reshaped[:, 1:]
+        return X, y_reshaped
 
     def transform(self):
         X_train, y_train = self.transform_train()
@@ -98,9 +86,6 @@ class SpectraPreprocessor:
                 spectra_y = spectra_y[batch_size:]
 
                 yield spectra_batch_x, spectra_batch_y
-
-    #def get_num_training_files(self):
-    #    return len(self.train_spectra_loader.get_data_files())
 
     def get_num_test_instances(self):
         if self.num_test_instances is not None:
