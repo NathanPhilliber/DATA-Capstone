@@ -106,19 +106,19 @@ class EvaluationReport:
         return self.plot_predicted_probs(sample_idx, num_channels, num_peaks,
                                   f'Misclassified Predicted Probabilities, True Num Peaks: {num_peaks}')
 
-    def plot_predicted_probs_misclassified_per_peak(self, num_channels, num_examples, directory):
+    def plot_predicted_probs_misclassified_per_peak(self, num_channels, num_examples, directory, file_extension=None):
         for num_peaks in self.numeric_labels:
             try:
                 misclass = self.plot_predicted_probs_misclassified(num_peaks, num_channels, num_examples)
-                misclass.savefig(os.path.join(directory, f'misclassified_{num_peaks}.png'))
+                misclass.savefig(os.path.join(directory, f'misclassified_{num_peaks}-{file_extension}.png'))
             except:
                 print(f'No misclassified {num_peaks} peaks.')
 
 
-def complete_evaluation(evaluation_report, num_channels_to_show, num_examples_per_peak, directory):
-    try_create_directory(directory)
+def complete_evaluation(evaluation_report, num_channels_to_show, num_examples_per_peak, directory, file_extension=None):
     roc_curve_plot = evaluation_report.plot_roc_curves()
-    roc_curve_plot.savefig(os.path.join(directory, 'roc_curve.png'))
+    roc_curve_plot.savefig(os.path.join(directory, f'roc_curve-{file_extension}.png'))
     mean_preds = evaluation_report.plot_mean_pred_probs()
-    mean_preds.savefig(os.path.join(directory, 'mean_preds.png'))
-    evaluation_report.plot_predicted_probs_misclassified_per_peak(num_channels_to_show, num_examples_per_peak, directory)
+    mean_preds.savefig(os.path.join(directory, f'mean_preds-{file_extension}.png'))
+    evaluation_report.plot_predicted_probs_misclassified_per_peak(num_channels_to_show, num_examples_per_peak,
+                                                                  directory, file_extension)

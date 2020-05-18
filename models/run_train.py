@@ -308,17 +308,20 @@ def run_evaluate_model(model_name, num_channels, num_instances, dataset_name, nu
     classif_report = eval_report.get_eval_classification_report()
     print("------- Classification Report ------- ")
     print(json.dumps(classif_report, indent=4))
+    dir = os.path.join(MODEL_RES_DIR, result_name)
+    dir_eval = os.path.join(dir, "eval")
+    try_create_directory(dir_eval)
+    filename_extension = f"{str(datetime.now().strftime('%m%d.%H%M'))}"
+
     if num_examples > 0:
-        dir = os.path.join(MODEL_RES_DIR, result_name)
-        dir_imgs = os.path.join(dir, 'eval')
-        complete_evaluation(eval_report, 5, num_examples, dir_imgs)
+        complete_evaluation(eval_report, 5, num_examples, dir_eval, file_extension=filename_extension)
 
     if rocket is not None:
         rocket.experiment.log_metrics(classif_report)
         rocket.experiment.log_confusion_matrix(eval_report.y_true_num, eval_report.preds, labels=labels)
         if num_examples > 0:
-            for img in os.listdir(dir_imgs):
-                image_path = os.path.join(dir_imgs, img)
+            for img in os.listdir(dir_eval):
+                image_path = os.path.join(dir_eval, img)
                 rocket.experiment.log_image(image_path)
 
 
