@@ -7,8 +7,6 @@ from datagen.spectra_loader import SpectraLoader
 from datetime import datetime
 import click
 from comet_connection import CometConnection
-from sklearn.metrics import classification_report
-import numpy as np
 from models.networks.evaluator import complete_evaluation, EvaluationReport
 
 
@@ -27,24 +25,6 @@ COMPILE_DICT = {'optimizer': 'adam','loss': 'categorical_crossentropy', 'metrics
 OPTIMIZE_PARAMS = {'algorithm': 'bayes', 'spec': {'metric': 'loss', 'objective': 'minimize'}}
 
 GENERATOR_LIMIT = 10000  # The minimum number of data points where fit generator should be used
-
-
-def format_classification_report(classification_report, peak_labels):
-    return {f'{p}_test_{metric}': metric_val for p in peak_labels for metric, metric_val in
-            classification_report[p].items()}
-
-
-def get_classification_report(y_test, preds, experiment):
-    preds_formatted = np.argmax(preds, axis=1)
-    test_formatted = np.argmax(y_test, axis=1)
-    peak_labels = [f"n_peaks_{1 + num_peak}" for num_peak in range(y_test.shape[1])]
-    classif_report = classification_report(test_formatted, preds_formatted, target_names=peak_labels, output_dict=True)
-    classif_report_str = classification_report(test_formatted, preds_formatted, target_names=peak_labels)
-
-    formatted = format_classification_report(classif_report, peak_labels)
-    experiment.log_metrics(formatted)
-    experiment.log_text(classif_report_str)
-    return classif_report
 
 
 loaded_models = None
@@ -114,23 +94,27 @@ def train_model(model, dataset_name, dataset_config, batch_size, n_epochs, num_c
     if use_generator:
         print("\nUsing fit generator.\n")
         #X_test, y_test = spectra_pp.transform_test(encoded=True)
-        model.fit_generator(spectra_pp, num_instances, batch_size=batch_size, epochs=n_epochs, encoded=True,
+        model.fit_generator(spectra_pp, num_instances, batch_size=batch_size, epochs=n_epochs,
                             compile_dict=compile_dict)
 
     else:
-        X_train, y_train, X_test, y_test = spectra_pp.transform(encoded=True)
+        X_train, y_train, X_test, y_test = spectra_pp.transform()
         model.fit(X_train, y_train, X_test, y_test, batch_size=batch_size, epochs=n_epochs,
                   compile_dict=compile_dict)
 
     return model
 
 
-def evaluate_model(model, dataset_name, dataset_config, num_channels, num_instances, directory):
-    use_generator = dataset_config["num_instances"] > GENERATOR_LIMIT
-    print('use_generator: ', use_generator)
-    print('Dataset name: ', dataset_name)
+def get_evaluation_report(model, dataset_name, num_channels, num_instances, labels=None):
     spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, num_channels=num_channels, num_instances=num_instances,
-                                     use_generator=False)
+                                     use_generator=False, load_train=False)
+    evaluation_report = EvaluationReport(model, spectra_pp, labels)
+    return evaluation_report
+
+
+def visualize_evaluate_model(model, dataset_name, num_channels, num_instances, directory):
+    spectra_pp = SpectraPreprocessor(dataset_name=dataset_name, num_channels=num_channels, num_instances=num_instances,
+                                     use_generator=False, load_train=False)
     evaluator = EvaluationReport(model, spectra_pp)
     img = complete_evaluation(evaluator, 3, 10, directory)
     return img
@@ -295,14 +279,16 @@ def continue_train_model(model_name, num_channels, num_instances, dataset_name, 
 
         rocket.save(save_loc)
 
+
 @main.command(name="evaluate", help="Evaluate an existing run")
 @click.option('--model-name', "-m", prompt=prompt_model_string(), callback=get_model_name, default=None)
 @click.option('--num-channels', "-nc", prompt="Number of Channels: ", type=click.IntRange(min=1))
 @click.option('--num-instances', "-ns", prompt="Number of Instances: ", type=click.IntRange(min=1))
 @click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
-def run_evaluate_model(model_name, num_channels, num_instances, dataset_name, model_module_index=None):
-
-    result_name = get_result_name(model_name, input(prompt_previous_run(model_name) + ": "))  # If you can figure out how to add this to Click args, then please do
+@click.option('--num-examples', "-d", prompt="Number of examples per peak to visualize predictions for.",
+              default=0, type=click.IntRange(min=0))
+def run_evaluate_model(model_name, num_channels, num_instances, dataset_name, num_examples, model_module_index=None):
+    result_name = get_result_name(model_name, input(prompt_previous_run(model_name) + ": "))
     print("Using dataset:", dataset_name)
     print("Using model:", model_name)
     print("Using result:", result_name)
@@ -315,14 +301,29 @@ def run_evaluate_model(model_name, num_channels, num_instances, dataset_name, mo
         rocket.persist(comet_config_path)
 
     model.persist(result_name)
+    labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
+    eval_report = get_evaluation_report(model=model, dataset_name=dataset_name, num_channels=num_channels,
+                                        num_instances=num_instances, labels=labels)
+
+    classif_report = eval_report.get_eval_classification_report()
+    print("------- Classification Report ------- ")
+    print(json.dumps(classif_report, indent=4))
     dir = os.path.join(MODEL_RES_DIR, result_name)
-    dir_imgs = os.path.join(dir, 'eval')
-    evaluate_model(model, dataset_name, dataset_config, num_channels, num_instances, dir_imgs)
+    dir_eval = os.path.join(dir, "eval")
+    try_create_directory(dir_eval)
+    filename_extension = f"{str(datetime.now().strftime('%m%d.%H%M'))}"
+
+    if num_examples > 0:
+        complete_evaluation(eval_report, 5, num_examples, dir_eval, file_extension=filename_extension)
+        print("View images under the following directory: ", dir_eval)
 
     if rocket is not None:
-        for img in os.listdir(dir_imgs):
-            image_path = os.path.join(dir_imgs, img)
-            rocket.experiment.log_image(image_path)
+        rocket.experiment.log_metrics(classif_report)
+        rocket.experiment.log_confusion_matrix(eval_report.y_true_num, eval_report.preds, labels=labels)
+        if num_examples > 0:
+            for img in os.listdir(dir_eval):
+                image_path = os.path.join(dir_eval, img)
+                rocket.experiment.log_image(image_path)
 
 
 @main.command(name="new", help="Train a new model")
@@ -351,14 +352,6 @@ def train_new_model(comet_name, num_channels, num_instances, batch_size, n_epoch
     print(f"Saved model to {to_local_path(save_loc)}")
 
     if rocket is not None:
-        y_true, y_pred = model.preds
-        rocket.experiment.log_parameters(model.serialize())
-        rocket.experiment.log_confusion_matrix(y_true, y_pred)
-
-        labels = [str(i) for i in range(1, int(dataset_config['n_max'] + 1))]
-        rocket.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
-        get_classification_report(y_true, y_pred, rocket.experiment)
-
         rocket.save(save_loc)
 
 

@@ -1,23 +1,39 @@
 import math
-import numpy as np
 from sklearn.metrics import roc_curve, roc_auc_score
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.metrics import classification_report
+import numpy as np
 from utils import *
 
 
-class EvaluationReport():
+def format_classification_report(classification_report, peak_labels):
+    return {f'{p}_test_{metric}': metric_val for p in peak_labels for metric, metric_val in
+            classification_report[p].items()}
+
+
+def get_classification_report(test_formatted, preds_formatted, peak_labels):
+    classif_report = classification_report(test_formatted, preds_formatted, target_names=peak_labels, output_dict=True)
+    formatted = format_classification_report(classif_report, peak_labels)
+    return formatted
+
+
+class EvaluationReport:
     def __init__(self, model, spectra_preprocessor, labels=None):
         self.model = model
-        _, _, self.X_test, self.y_test = spectra_preprocessor.transform(encoded=True)
+        self.X_test, self.y_test = spectra_preprocessor.transform_test()
         self.test_spectra_loader = spectra_preprocessor.test_spectra_loader
         self.peak_locs = self.test_spectra_loader.get_peak_locations()
         self.labels = labels
         if self.labels is None:
             self.labels = [i + 1 for i in range(self.y_test.shape[1])]
+        self.numeric_labels = [i + 1 for i in range(self.y_test.shape[1])]
         self.probs = self.model.keras_model.predict_proba(self.X_test)
         self.preds = self.probs.argmax(axis=1) + 1
         self.y_true_num = self.y_test.argmax(axis=1) + 1
+
+    def get_eval_classification_report(self):
+        return get_classification_report(self.y_true_num, self.preds, self.labels)
 
     def plot_roc_curves(self, figsize=(9, 7)):
         plt.figure(figsize=figsize)
@@ -34,7 +50,7 @@ class EvaluationReport():
             fpr, tpr, _ = roc_curve(y_true_i, probs_i)
             roc_auc = roc_auc_score(y_true_i, probs_i)
             plt.plot(fpr, tpr,
-                     lw=lw, label='%d peaks ROC curve (area = %0.2f)' % (self.labels[i], roc_auc))
+                     lw=lw, label=f'{self.numeric_labels[i]} peaks ROC curve (area = %0.2f)' % roc_auc)
             plt.legend(loc='lower right')
         return plt
 
@@ -47,9 +63,9 @@ class EvaluationReport():
         # return sns.barplot(x = self.labels, y = subset_probs, palette=color_palette, ax=ax).set_title(f'Mean predicted probabilities when number peaks = {num_peaks}')
 
     def plot_mean_pred_probs(self):
-        fig, axes = plt.subplots(len(self.labels), 1, figsize=(7, len(self.labels) * 5))
-        for i, np in enumerate(self.labels):
-            self.plot_mean_pred_prob(np, axes[i])
+        fig, axes = plt.subplots(len(self.numeric_labels), 1, figsize=(7, len(self.numeric_labels) * 5))
+        for i, num_peak in enumerate(self.numeric_labels):
+            self.plot_mean_pred_prob(num_peak, axes[i])
         plt.subplots_adjust(hspace=0.3)
         return plt
 
@@ -58,8 +74,8 @@ class EvaluationReport():
         if title_extension == None:
             title = f'Predicted Probability for Num Peaks'
 
-        color_palette = ['grey' if label != num_peaks else 'red' for label in self.labels]
-        bar_plot = sns.barplot(x=[str(i) for i in self.labels], y=peak_probs, palette=color_palette, ax=ax)
+        color_palette = ['grey' if label != num_peaks else 'red' for label in self.numeric_labels]
+        bar_plot = sns.barplot(x=self.labels, y=peak_probs, palette=color_palette, ax=ax)
         bar_plot.set_title(title)
         bar_plot.set_xlabel('Num Peaks')
         bar_plot.set_ylabel(f'{y_extension} Probability')
@@ -90,19 +106,19 @@ class EvaluationReport():
         return self.plot_predicted_probs(sample_idx, num_channels, num_peaks,
                                   f'Misclassified Predicted Probabilities, True Num Peaks: {num_peaks}')
 
-    def plot_predicted_probs_misclassified_per_peak(self, num_channels, num_examples, directory):
-        for np in self.labels:
+    def plot_predicted_probs_misclassified_per_peak(self, num_channels, num_examples, directory, file_extension=None):
+        for num_peaks in self.numeric_labels:
             try:
-                misclass = self.plot_predicted_probs_misclassified(np, num_channels, num_examples)
-                misclass.savefig(os.path.join(directory, f'misclassified_{np}.png'))
+                misclass = self.plot_predicted_probs_misclassified(num_peaks, num_channels, num_examples)
+                misclass.savefig(os.path.join(directory, f'misclassified_{num_peaks}-{file_extension}.png'))
             except:
-                print(f'No misclassified {np} peaks.')
+                print(f'No misclassified {num_peaks} peaks.')
 
 
-def complete_evaluation(evaluation_report, num_channels_to_show, num_examples_per_peak, directory):
-    try_create_directory(directory)
+def complete_evaluation(evaluation_report, num_channels_to_show, num_examples_per_peak, directory, file_extension=None):
     roc_curve_plot = evaluation_report.plot_roc_curves()
-    roc_curve_plot.savefig(os.path.join(directory, 'roc_curve.png'))
+    roc_curve_plot.savefig(os.path.join(directory, f'roc_curve-{file_extension}.png'))
     mean_preds = evaluation_report.plot_mean_pred_probs()
-    mean_preds.savefig(os.path.join(directory, 'mean_preds.png'))
-    evaluation_report.plot_predicted_probs_misclassified_per_peak(num_channels_to_show, num_examples_per_peak, directory)
+    mean_preds.savefig(os.path.join(directory, f'mean_preds-{file_extension}.png'))
+    evaluation_report.plot_predicted_probs_misclassified_per_peak(num_channels_to_show, num_examples_per_peak,
+                                                                  directory, file_extension)
