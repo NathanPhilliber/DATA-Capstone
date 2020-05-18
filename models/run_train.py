@@ -315,6 +315,7 @@ def run_evaluate_model(model_name, num_channels, num_instances, dataset_name, nu
 
     if num_examples > 0:
         complete_evaluation(eval_report, 5, num_examples, dir_eval, file_extension=filename_extension)
+        print("View images under the following directory: ", dir_eval)
 
     if rocket is not None:
         rocket.experiment.log_metrics(classif_report)
