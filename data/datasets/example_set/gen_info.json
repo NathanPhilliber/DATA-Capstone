@@ -1,0 +1,12 @@
+{
+    "n_max": 4.0,
+    "n_max_s": 5.0,
+    "num_channels": 50.0,
+    "scale": 1.0,
+    "omega_shift": 10.0,
+    "dg": 0.5,
+    "dgs": 0.5,
+    "num_timesteps": 301,
+    "num_instances": null,
+    "matlab_script": "spectra_generator_v2.m"
+}
