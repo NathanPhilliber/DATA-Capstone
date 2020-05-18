@@ -285,7 +285,9 @@ def continue_train_model(model_name, num_channels, num_instances, dataset_name, 
 @click.option('--num-channels', "-nc", prompt="Number of Channels: ", type=click.IntRange(min=1))
 @click.option('--num-instances', "-ns", prompt="Number of Instances: ", type=click.IntRange(min=1))
 @click.option('--dataset-name', "-d", prompt=prompt_dataset_string(), callback=get_dataset_name, default=None)
-def run_evaluate_model(model_name, num_channels, num_instances, dataset_name, model_module_index=None):
+@click.option('--num-examples', "-d", prompt="Number of examples per peak to visualize predictions for.",
+              default=0, type=click.IntRange(min=0))
+def run_evaluate_model(model_name, num_channels, num_instances, dataset_name, num_examples, model_module_index=None):
     result_name = get_result_name(model_name, input(prompt_previous_run(model_name) + ": "))
     print("Using dataset:", dataset_name)
     print("Using model:", model_name)
@@ -306,22 +308,18 @@ def run_evaluate_model(model_name, num_channels, num_instances, dataset_name, mo
     classif_report = eval_report.get_eval_classification_report()
     print("------- Classification Report ------- ")
     print(json.dumps(classif_report, indent=4))
+    if num_examples > 0:
+        dir = os.path.join(MODEL_RES_DIR, result_name)
+        dir_imgs = os.path.join(dir, 'eval')
+        complete_evaluation(eval_report, 5, num_examples, dir_imgs)
+
     if rocket is not None:
         rocket.experiment.log_metrics(classif_report)
         rocket.experiment.log_confusion_matrix(eval_report.y_true_num, eval_report.preds, labels=labels)
-
-    # dir = os.path.join(MODEL_RES_DIR, result_name)
-    # dir_imgs = os.path.join(dir, 'eval')
-    # visualize_evaluate_model(model, dataset_name, dataset_config, num_channels, num_instances)
-    #
-    # if rocket is not None:
-    #     rocket.experiment.log_confusion_matrix(y_true, y_pred, labels=labels)
-    #     classif_report = get_classification_report(y_true, y_pred, rocket.experiment)
-    #
-    #     print(classif_report)
-    #     for img in os.listdir(dir_imgs):
-    #         image_path = os.path.join(dir_imgs, img)
-    #         rocket.experiment.log_image(image_path)
+        if num_examples > 0:
+            for img in os.listdir(dir_imgs):
+                image_path = os.path.join(dir_imgs, img)
+                rocket.experiment.log_image(image_path)
 
 
 @main.command(name="new", help="Train a new model")

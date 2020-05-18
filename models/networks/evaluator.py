@@ -1,5 +1,4 @@
 import math
-import numpy as np
 from sklearn.metrics import roc_curve, roc_auc_score
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -16,9 +15,6 @@ def format_classification_report(classification_report, peak_labels):
 def get_classification_report(test_formatted, preds_formatted, peak_labels):
     classif_report = classification_report(test_formatted, preds_formatted, target_names=peak_labels, output_dict=True)
     formatted = format_classification_report(classif_report, peak_labels)
-    # if experiment is not None:
-    #     experiment.log_metrics(formatted)
-    #     experiment.log_text(classif_report_str)
     return formatted
 
 
@@ -31,6 +27,7 @@ class EvaluationReport:
         self.labels = labels
         if self.labels is None:
             self.labels = [i + 1 for i in range(self.y_test.shape[1])]
+        self.numeric_labels = [i + 1 for i in range(self.y_test.shape[1])]
         self.probs = self.model.keras_model.predict_proba(self.X_test)
         self.preds = self.probs.argmax(axis=1) + 1
         self.y_true_num = self.y_test.argmax(axis=1) + 1
@@ -53,7 +50,7 @@ class EvaluationReport:
             fpr, tpr, _ = roc_curve(y_true_i, probs_i)
             roc_auc = roc_auc_score(y_true_i, probs_i)
             plt.plot(fpr, tpr,
-                     lw=lw, label='%d peaks ROC curve (area = %0.2f)' % (self.labels[i], roc_auc))
+                     lw=lw, label=f'{self.numeric_labels[i]} peaks ROC curve (area = %0.2f)' % roc_auc)
             plt.legend(loc='lower right')
         return plt
 
@@ -66,9 +63,9 @@ class EvaluationReport:
         # return sns.barplot(x = self.labels, y = subset_probs, palette=color_palette, ax=ax).set_title(f'Mean predicted probabilities when number peaks = {num_peaks}')
 
     def plot_mean_pred_probs(self):
-        fig, axes = plt.subplots(len(self.labels), 1, figsize=(7, len(self.labels) * 5))
-        for i, np in enumerate(self.labels):
-            self.plot_mean_pred_prob(np, axes[i])
+        fig, axes = plt.subplots(len(self.numeric_labels), 1, figsize=(7, len(self.numeric_labels) * 5))
+        for i, num_peak in enumerate(self.numeric_labels):
+            self.plot_mean_pred_prob(num_peak, axes[i])
         plt.subplots_adjust(hspace=0.3)
         return plt
 
@@ -77,8 +74,8 @@ class EvaluationReport:
         if title_extension == None:
             title = f'Predicted Probability for Num Peaks'
 
-        color_palette = ['grey' if label != num_peaks else 'red' for label in self.labels]
-        bar_plot = sns.barplot(x=[str(i) for i in self.labels], y=peak_probs, palette=color_palette, ax=ax)
+        color_palette = ['grey' if label != num_peaks else 'red' for label in self.numeric_labels]
+        bar_plot = sns.barplot(x=self.labels, y=peak_probs, palette=color_palette, ax=ax)
         bar_plot.set_title(title)
         bar_plot.set_xlabel('Num Peaks')
         bar_plot.set_ylabel(f'{y_extension} Probability')
@@ -110,12 +107,12 @@ class EvaluationReport:
                                   f'Misclassified Predicted Probabilities, True Num Peaks: {num_peaks}')
 
     def plot_predicted_probs_misclassified_per_peak(self, num_channels, num_examples, directory):
-        for np in self.labels:
+        for num_peaks in self.numeric_labels:
             try:
-                misclass = self.plot_predicted_probs_misclassified(np, num_channels, num_examples)
-                misclass.savefig(os.path.join(directory, f'misclassified_{np}.png'))
+                misclass = self.plot_predicted_probs_misclassified(num_peaks, num_channels, num_examples)
+                misclass.savefig(os.path.join(directory, f'misclassified_{num_peaks}.png'))
             except:
-                print(f'No misclassified {np} peaks.')
+                print(f'No misclassified {num_peaks} peaks.')
 
 
 def complete_evaluation(evaluation_report, num_channels_to_show, num_examples_per_peak, directory):
