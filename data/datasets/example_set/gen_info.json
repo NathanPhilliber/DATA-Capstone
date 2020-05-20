@@ -7,6 +7,6 @@
     "dg": 0.5,
     "dgs": 0.5,
     "num_timesteps": 301,
-    "num_instances": null,
+    "num_instances": 500,
     "matlab_script": "spectra_generator_v2.m"
 }
