@@ -8,6 +8,7 @@
 %dGs=1.8
 
 function [N, Dm, peakLocations, omega_res] = spectra_generator_v2(Nmax, NmaxS, nc, scale, omegaShift, dG, dGs)
+rng('shuffle');
 cnt=1;
 K=1;
 N=floor(rand*Nmax)+1;
