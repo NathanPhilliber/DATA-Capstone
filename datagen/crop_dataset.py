@@ -189,6 +189,7 @@ def reclass_dataset(dataset_path, class_groups, new_dataset_path, shard_size):
 
     print("Writing config")
     gen_info["num_instances"] = total_instances
+    gen_info["n_max"] = len(class_groups)
     json.dump(gen_info, open(os.path.join(new_dataset_path, DATAGEN_CONFIG), "w"))
 
     print("Done")
