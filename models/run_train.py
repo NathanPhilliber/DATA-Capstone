@@ -7,7 +7,7 @@ from datagen.spectra_loader import SpectraLoader
 from datetime import datetime
 import click
 from comet_connection import CometConnection
-from models.networks.evaluator import complete_evaluation, EvaluationReport
+from models.evaluator import complete_evaluation, EvaluationReport
 
 
 
