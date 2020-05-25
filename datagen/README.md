@@ -1,14 +1,27 @@
-## Spectra Generator
 
-```python
-from datagen import spectra_generator
+# Spectra Generator: Dataset Generation
 
-spectra_generator = spectra_generator(n_max=5, nc=10, k=1, scale=1,
-                 omega_shift=10)
-spectrum = spectra_generator.generate_spectrum()
+## Overview Description
+This directory contains code used to generate spectra based on parameter which the user specifies. The data generated in this module is later used to train models.
+
+
+## File Structure
+```bash
+├── datagen     <--------------------------  root directory for data-generating code
+│   ├── run_gen.py      <-------------------- driver program (execute with python3)
+│   ├── matlab_scripts     <-------------------- stores MATLAB scripts used to generate data
+│   │   ├── spectra_generator_v1.m
+│   │   ├── spectra_generator_v2.m
+│   ├── spectra_loader.py    <-----------------------  load spectra data that has already been generated
+│   ├── spectrum.py    <---------  load data from a single spectrum that has already been generated
+│   ├── loadmatlab.py    <---------------- load spectrum from MATLAB scripts 
+│   └── notebooks   <------------------  Jupyter notebooks for exploration
+│   └── spectra_generator.py     <------------------  Use MATLAB scripts to generate spectra data.
+│   └── reshard.py     <------------------  Load data that has been split into numerous shards
 ```
 
-**Installation Instructions:**
+## Installation Instructions:
+We require the installation of MATLAB in order to be able to generate data. If you don't wish to install MATLAB and are only interested in testing out a model without generating additional data, we have placed an example dataset in the following directory: [example_set](../data/datasets/example_set). However, if you wish to generate additional datasets, make sure to complete the following steps:
 
 *MAC OS*
 1. Find your 'matlabroot'
@@ -19,79 +32,107 @@ spectrum = spectra_generator.generate_spectrum()
   - `cd MATLABROOT/extern/engines/python`
   - `python setup.py install`
 
-### Spectrum Class
-```python
-print(spectrum.__dict__)
-```
+## Running Code
+In order to execute these scripts, you will need to have `python3` and all the [dependencies](../requirements.txt) installed.
+
+The executable is named `run_gen.py`. An example execution of it may look like the following:
 ```bash
-{'n': 3.0,
- 'dm': array([[0.01251392, 0.00456968, 0.01145224, ..., 0.00943986, 0.00319595,
-         0.        ],
-        [0.00865342, 0.03238539, 0.01786775, ..., 0.00857245, 0.00197015,
-         0.01237599],
-        [0.01185974, 0.02244476, 0.01925143, ..., 0.02409697, 0.02539242,
-         0.02539019],
-        ...,
-        [0.01579079, 0.04827343, 0.04617052, ..., 0.02959334, 0.02393742,
-         0.03070852],
-        [0.01176339, 0.01616461, 0.00817005, ..., 0.01161759, 0.00844369,
-         0.0188862 ],
-        [0.04805625, 0.04332528, 0.05712429, ..., 0.0041624 , 0.00204632,
-         0.        ]]),
- 'peak_locations': array([[0.58111839, 0.2674255 , 0.44076255]]),
- 'num_channels': 10.0}
+python3 -m datagen.run_gen
 ```
 
-```python
-spectrum.plot_channel(0)
-```
-![Alt Text](notebooks/imgs/plot_channel.png)
-
-```python
-spectrum.plot_channels()
-```
-![Alt Text](notebooks/imgs/plot_channels.png)
-
-
-#### Generate Spectra
-The following code will generate 100 examples.
-```python
-num_instances = 100
-spectra_json = spectra_generator.generate_spectra_json(num_instances)
-print(spectra_json)
-```
+- Specify the name of the directory to store the data in.
 ```bash
-[{'n': 5.0,
-  'num_channels': 10.0,
-  'dm': array([[0.0208269 , 0.02253892, 0.0099637 , ..., 0.00040732, 0.00389147,
-          0.0002161 ],
-         [0.0138599 , 0.01332543, 0.00641046, ..., 0.01726208, 0.00842159,
-          0.01226382],
-         [0.00267872, 0.00100615, 0.00513228, ..., 0.03412608, 0.03330579,
-          0.03655875],
-         ...,
-         [0.01622746, 0.00373547, 0.00217178, ..., 0.00237711, 0.00412067,
-          0.0064957 ],
-         [0.00469209, 0.00913277, 0.00675304, ..., 0.00119695, 0.00060038,
-          0.0008287 ],
-         [0.0192051 , 0.01656793, 0.00655339, ..., 0.00416238, 0.00353598,
-          0.0005723 ]]),
-  'peak_locations': array([[0.32289244, 0.69732596, 0.56352191, 0.30887174, 0.39503351]])},
- {'n': 3.0,
-  'num_channels': 10.0,
-  'dm': array([[0.01251392, 0.00456968, 0.01145224, ..., 0.00943986, 0.00319595,
-          0.        ],
-         [0.00865342, 0.03238539, 0.01786775, ..., 0.00857245, 0.00197015,
-          0.01237599],
-         [0.01185974, 0.02244476, 0.01925143, ..., 0.02409697, 0.02539242,
-          0.02539019],
-         ...,
-         [0.01579079, 0.04827343, 0.04617052, ..., 0.02959334, 0.02393742,
-          0.03070852],
-         [0.01176339, 0.01616461, 0.00817005, ..., 0.01161759, 0.00844369,
-          0.0188862 ],
-         [0.04805625, 0.04332528, 0.05712429, ..., 0.0041624 , 0.00204632,
-          0.        ]]),
-  'peak_locations': array([[0.58111839, 0.2674255 , 0.44076255]])},
- ...
+Spectra are stored in this directory --  data/datasets/:
+```
+
+- Select the MATLAB script used to generate the data.
+```bash
+Select from the following MATLAB scripts, located in: datagen/matlab_scripts
+0: spectra_generator_v1.m
+1: spectra_generator_v2.m
+```
+
+- Specify the number of instances to create.
+```bash
+Number of instances to create [10000]:
+```
+
+- Specify the number of spectra to put in each shard.
+```bash
+How many spectra to put in each shard (0 = no shard) [0]:
+```
+
+- Specify the number of channels that each spectrum will have.
+```bash
+Number of channels to generate [10.0]:
+```
+
+- Specify the maximum number of modes or resonances.
+```bash
+Maximum number of modes [5.0]:
+```
+
+- Specify the maximum number of shell modes.
+```bash
+Maximum number of shell peaks [5.0]:
+```
+
+- Specify the scale.
+```bash
+Scale or width of window [1.0]:
+```
+
+- Specify omega shift. (This will change the resolution of the x-axis)
+```bash
+Omega Shift [10.0]:
+```
+
+- Specify the variation of gamma (or dG).
+```bash
+Variation of Gamma [0.5]:
+```
+
+- Specify the variation of gamma for the shell modes (or dGs).
+```bash
+Gamma variation of shell modes [1.8]:
+```
+
+------------------
+
+- After specifying the options above, you should receive a similar message:
+```bash
+Generating 500 spectra for shard #1 (500 left)...
+  Making SpectraLoader...
+  Splitting data...
+    425 Train, 75 Test
+  Saving training data...
+    Saved 425 spectra
+  Saving testing data...
+    Saved 75 spectra
+```
+
+- Suppose you decide to name your dataset: `example_set`.
+```
+├── datagen       
+│   ├── datasets  
+│   │   ├── example_set
+│   │   │   ├── gen_info.json
+│   │   │   ├── train_example_set.pkl
+│   │   │   ├── test_example_set.pkl
+```
+
+- The `gen_info.json` file will store the configurations used when generating this dataset:
+```json
+{
+    "n_max": 4.0,
+    "n_max_s": 5.0,
+    "num_channels": 50.0,
+    "scale": 1.0,
+    "omega_shift": 10.0,
+    "dg": 0.5,
+    "dgs": 0.5,
+    "num_timesteps": 301,
+    "num_instances": 500,
+    "matlab_script": "spectra_generator_v2.m"
+}
 ```
