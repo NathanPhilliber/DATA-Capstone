@@ -35,6 +35,12 @@ Due to the size of the datasets that are generated, we implemented a way for the
 *Note: The dataset that you are working with will be downloaded form S3, so it will still end up on disk. This was implemented to save space when dealing with multiple datasets.*
 
 By default, data that is generated will be saved to disk. To use S3 instead, uncomment this line:
-`spectra_generator = S3SpectraGenerator(s3_dir, matlab_script=matlab_script, nc=num_channels, n_max=n_max, n_max_s=n_max_s, scale=scale, omega_shift=omega_shift, dg=dg, dgs=dgs)` 
-and comment out `spectra_generator = LocalSpectraGenerator(matlab_script=matlab_script, nc=num_channels, n_max=n_max, n_max_s=n_max_s,
-                                              scale=scale, omega_shift=omega_shift, dg=dg, dgs=dgs, save_dir=directory)` in *run_gen.py*
+```
+spectra_generator = S3SpectraGenerator(s3_dir, matlab_script=matlab_script, nc=num_channels, n_max=n_max, n_max_s=n_max_s, scale=scale, omega_shift=omega_shift, dg=dg, dgs=dgs)
+``` 
+and comment out 
+```
+spectra_generator = LocalSpectraGenerator(matlab_script=matlab_script, nc=num_channels, n_max=n_max, n_max_s=n_max_s,
+                                             scale=scale, omega_shift=omega_shift, dg=dg, dgs=dgs, save_dir=directory)
+```
+ in *run_gen.py*
