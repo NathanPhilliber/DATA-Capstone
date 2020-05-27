@@ -27,4 +27,4 @@ python3 -m models.run_train continue
 python3 -m models.run_train evaluate
 ```
 
-![eval][data/results/GoogleModel_BC-1234-50c-all.0513.2202/eval/roc_curve-0517.1722.png]
+![eval][https://github.com/NathanPhilliber/DATA-Capstone/blob/master/data/results/GoogleModel_BC-1234-50c-all.0513.2202/eval/roc_curve-0517.1722.png]
