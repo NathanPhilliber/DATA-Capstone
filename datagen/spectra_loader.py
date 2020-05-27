@@ -31,7 +31,6 @@ class SpectraLoader:
         data_files = SpectraLoader.collect_sharded_files(self.dataset_name, self.subset_prefix)
 
         while retries < MAX_RETRIES and not data_files:
-            print(data_files)
             try:
                 print(f'Downloading {self.dataset_name} from S3... Attempt {retries + 1} out of {MAX_RETRIES}')
                 self.s3.download_from_metadata_json(
