@@ -59,8 +59,11 @@ def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s,
     print("Creating generator...")
     
     s3_dir = 'nasa-capstone-data-storage'
+    # Uncomment the following line to save data to S3 on generation
     #spectra_generator = S3SpectraGenerator(s3_dir, matlab_script=matlab_script, nc=num_channels, n_max=n_max, n_max_s=n_max_s,
     #                                          scale=scale, omega_shift=omega_shift, dg=dg, dgs=dgs)
+
+    # Comment out the following line to disable local data generation
     spectra_generator = LocalSpectraGenerator(matlab_script=matlab_script, nc=num_channels, n_max=n_max, n_max_s=n_max_s,
                                               scale=scale, omega_shift=omega_shift, dg=dg, dgs=dgs, save_dir=directory)
 
