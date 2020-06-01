@@ -8,7 +8,7 @@ import math
 class Spectrum:
 
     def __init__(self, n, dm, dg, dgs, peak_locations, n_max, num_channels, scale, omega_shift, n_max_s,
-                 gamma_amp_factor, amp_factor, epsilon2, **kwargs):
+                 gamma_amp_factor=None, amp_factor=None, epsilon2=None, **kwargs):
         self.n = n
         self.dm = dm
         self.peak_locations = peak_locations
