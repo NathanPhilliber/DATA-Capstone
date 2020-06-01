@@ -7,7 +7,7 @@
 %dG=1.8
 %dGs=1.8
 
-function [N, Dm, peakLocations, omega_res] = spectra_generator_v2(Nmax, NmaxS, nc, scale, omegaShift, dG, dGs)
+function [N, Dm, peakLocations, omega_res] = spectra_generator_v2(Nmax, NmaxS, nc, scale, omegaShift, dG, dGs, gammaAmpFactor, ampFactor, epsilon2)
 rng('shuffle');
 cnt=1;
 K=1;
@@ -20,7 +20,7 @@ NS=floor(rand*NmaxS)+1;% number of shellmodes
 % GammaS=scale./NmaxS.*(1+dGs.*(rand(1,NS)-0.5)).*4;%shellmodes width: of the scale of liquidmodes width multiplies by a factor >>1
 
 omega=scale.*rand(1,N)+omegaShift;
-GammaAmp=scale./(1+0.5*dG)./4;
+GammaAmp=scale./(1+0.5*dG)./gammaAmpFactor;
 Gamma=GammaAmp.*(1+dG*(rand(1,N)-0.5));
 omegaS=scale.*rand(1,NS)+omegaShift;%shellmodes location
 GammaAmpS=GammaAmp.*10;
@@ -39,7 +39,7 @@ AmpS=zeros(1,NS);%shellmodes amplitudes
 phase0S=2*pi*rand(nc.*K,NS);%shellmodes phases
 
 % ASK ABOUT SHELLMODE AMPLITUDES.
-Amp0S=rand(nc.*K,NS)./5;   %shellmodes amplitudes: the scale of the liquid modes divided by a factor >>1
+Amp0S=rand(nc.*K,NS)./ampFactor;   %shellmodes amplitudes: the scale of the liquid modes divided by a factor >>1
 %Amp0S=1.0/5.0;
 
 %omega_res=1000 * omegaShift; % resolution in angular frequency domain
@@ -85,7 +85,6 @@ for k=1:K %number of subplots
         
         
         epsilon=0.01;
-        epsilon2=0.05;
         T=1.*log(1/epsilon)./(GammaAmp.*(1-dG*0.5));%truncation time;
         
         for i=1:N

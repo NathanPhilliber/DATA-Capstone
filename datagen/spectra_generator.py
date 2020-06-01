@@ -29,9 +29,13 @@ class SpectraGenerator(ABC):
     DEFAULT_DG = 0.5
     DEFAULT_DGS = 1.8
     DEFAULT_MATLAB = 'spectra_generator'
+    DEFAULT_GAMMA_AMP_FACTOR = 4
+    DEFAULT_AMP_FACTOR = 5
+    DEFAULT_EPSILON2 = 0.05
 
     def __init__(self, matlab_script=DEFAULT_MATLAB, n_max=DEFAULT_N_MAX, n_max_s=DEFAULT_N_MAX_S, nc=DEFAULT_NC,
-                 scale=DEFAULT_SCALE, omega_shift=DEFAULT_OMEGA_SHIFT, dg=DEFAULT_DG, dgs=DEFAULT_DGS):
+                 scale=DEFAULT_SCALE, omega_shift=DEFAULT_OMEGA_SHIFT, dg=DEFAULT_DG, dgs=DEFAULT_DGS,
+                 gamma_amp_factor=DEFAULT_GAMMA_AMP_FACTOR, amp_factor=DEFAULT_AMP_FACTOR, epsilon2=DEFAULT_EPSILON2):
         self.n_max = float(n_max)
         self.n_max_s = float(n_max_s)
         self.num_channels = float(nc)
@@ -39,6 +43,9 @@ class SpectraGenerator(ABC):
         self.omega_shift = float(omega_shift)
         self.dg = dg
         self.dgs = dgs
+        self.gamma_amp_factor = float(gamma_amp_factor)
+        self.amp_factor = float(amp_factor)
+        self.epsilon2 = float(epsilon2)
         self.num_timesteps = None
         self.num_instances = None
         self.metadata = None
@@ -54,7 +61,9 @@ class SpectraGenerator(ABC):
         n, dm, peak_locations = matlab_method(float(self.n_max), float(self.n_max_s),
                                               float(self.num_channels), float(self.scale),
                                               float(self.omega_shift), float(self.dg),
-                                              float(self.dgs), nargout=3)
+                                              float(self.dgs), float(self.gamma_amp_factor),
+                                              float(self.amp_factor), float(self.epsilon2),
+                                              nargout=3)
         dm = [list(d) for d in dm]
         self.num_timesteps = len(dm[0])
         if type(peak_locations) == float:
@@ -98,6 +107,10 @@ class SpectraGenerator(ABC):
         spectra_generator_dict['num_timesteps'] = self.num_timesteps
         spectra_generator_dict['num_instances'] = self.num_instances
         spectra_generator_dict['matlab_script'] = self.matlab_script
+
+        spectra_generator_dict['gamma_amp_factor'] = self.gamma_amp_factor
+        spectra_generator_dict['amp_factor'] = self.amp_factor
+        spectra_generator_dict['epsilon2'] = self.epsilon2
 
         return spectra_generator_dict
 

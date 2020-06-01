@@ -7,7 +7,8 @@ import math
 
 class Spectrum:
 
-    def __init__(self, n, dm, dg, dgs, peak_locations, n_max, num_channels, scale, omega_shift, n_max_s, **kwargs):
+    def __init__(self, n, dm, dg, dgs, peak_locations, n_max, num_channels, scale, omega_shift, n_max_s,
+                 gamma_amp_factor, amp_factor, epsilon2, **kwargs):
         self.n = n
         self.dm = dm
         self.peak_locations = peak_locations
@@ -19,6 +20,9 @@ class Spectrum:
         self.num_channels = num_channels
         self.dg = dg
         self.dgs = dgs
+        self.gamma_amp_factor = gamma_amp_factor
+        self.amp_factor = amp_factor
+        self.epsilon2 = epsilon2
 
     def get_num_timesteps(self):
         return len(self.dm[0])
