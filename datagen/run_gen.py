@@ -48,7 +48,11 @@ def save_images(dataset_dir, spectra_loader, num_examples):
 @click.option('--omega-shift', type=float, prompt=f'Omega Shift', default=SpectraGenerator.DEFAULT_OMEGA_SHIFT)
 @click.option('--dg', type=float, prompt=f'Variation of Gamma', default=SpectraGenerator.DEFAULT_DG)
 @click.option('--dgs', type=float, prompt=f'Gamma variation of shell modes', default=SpectraGenerator.DEFAULT_DGS)
-def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s, scale, omega_shift, dg, dgs):
+@click.option('--gamma-amp-factor', type=float, prompt=f'Gamma amp factor', default=SpectraGenerator.DEFAULT_GAMMA_AMP_FACTOR)
+@click.option('--amp-factor', type=float, prompt=f'Amp factor', default=SpectraGenerator.DEFAULT_AMP_FACTOR)
+@click.option('--epsilon2', type=float, prompt=f'Epsilon2', default=SpectraGenerator.DEFAULT_EPSILON2)
+def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s, scale, omega_shift, dg, dgs, gamma_amp_factor,
+         amp_factor, epsilon2):
 
     # Setup data directory
     matlab_script = get_matlab_selection(version)
@@ -65,7 +69,8 @@ def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s,
 
     # Comment out the following line to disable local data generation
     spectra_generator = LocalSpectraGenerator(matlab_script=matlab_script, nc=num_channels, n_max=n_max, n_max_s=n_max_s,
-                                              scale=scale, omega_shift=omega_shift, dg=dg, dgs=dgs, save_dir=directory)
+                                              scale=scale, omega_shift=omega_shift, dg=dg, dgs=dgs, gamma_amp_factor=gamma_amp_factor,
+                                              amp_factor=amp_factor, epsilon2=epsilon2, save_dir=directory)
 
 
     # If we don't want to shard, set to num_instances to make num_shards = 1
