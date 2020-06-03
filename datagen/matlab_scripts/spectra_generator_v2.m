@@ -7,12 +7,13 @@
 %dG=1.8
 %dGs=1.8
 
-function [N, Dm, peakLocations, omega_res] = spectra_generator_v2(Nmax, NmaxS, nc, scale, omegaShift, dG, dGs, gammaAmpFactor, ampFactor, epsilon2)
+function [N, Dm, peakLocations, omega_res, NS, GammaAmp] = spectra_generator_v2(Nmax, NmaxS, nc, scale, omegaShift, dG, dGs, gammaAmpFactor, ampFactor, epsilon2)
 rng('shuffle');
 cnt=1;
 K=1;
 N=floor(rand*Nmax)+1;
-NS=floor(rand*NmaxS)+1;% number of shellmodes
+NS=floor(rand*NmaxS)+1;
+
 
 % omega=scale.*rand(K,N)+omegaShift;
 % Gamma=scale./Nmax.*(1+dG.*(rand(1,N)-0.5))./4;
@@ -21,11 +22,25 @@ NS=floor(rand*NmaxS)+1;% number of shellmodes
 
 omega=scale.*rand(1,N)+omegaShift;
 GammaAmp=scale./(1+0.5*dG)./gammaAmpFactor;
+% GammaAmp=scale./(1+0.5*dG)./4;
+% GammaAmp=scale./(1+0.5*dG)./16;
+% gammaAmpFactor is independent of data. It is a function of the zoom.
+% dG does depend on the data. When dG becomes larger, it will be easier to read the data.
+% Applying a model with diff. gammaAmpFactor doesn't make sense since this can be changed in preprocessing.
+% Features will become smaller relative with increased resolution.
+% Compare performance with spectral windows with same spectral density. Compare recall 2 peaks with recall 4 peaks.
+
 Gamma=GammaAmp.*(1+dG*(rand(1,N)-0.5));
+% Extreme values: [0.75, 1.25]
+% dG should be varied and not GammaAmp since it's an arbitrary variable that we can manually change.
+% dG --> within a 'zoomed' scale, how much variation?
+% Compare performance of recall for # modes for one choice of Gamma with diff. number of modes with another Gamma.
+% Ratio should be the same as the ratio of GammaAmp.
+% Get best number of gammaAmpFactor.
+
 omegaS=scale.*rand(1,NS)+omegaShift;%shellmodes location
 GammaAmpS=GammaAmp.*10;
 GammaS=GammaAmpS.*(1+dGs.*(rand(1,NS)-0.5));%shellmodes width: of the scale of liquidmodes width multiplies by a factor >>1
-
 
 phase=zeros(1,N);
 Amp=zeros(1,N);
