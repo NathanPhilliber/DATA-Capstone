@@ -58,19 +58,19 @@ class SpectraGenerator(ABC):
 
     def generate_spectrum(self):
         matlab_method = self.matlab_mapper[self.matlab_script]
-        n, dm, peak_locations = matlab_method(float(self.n_max), float(self.n_max_s),
+        n, dm, peak_locations, omega_res, n_shell, gamma_amp = matlab_method(float(self.n_max), float(self.n_max_s),
                                               float(self.num_channels), float(self.scale),
                                               float(self.omega_shift), float(self.dg),
                                               float(self.dgs), float(self.gamma_amp_factor),
                                               float(self.amp_factor), float(self.epsilon2),
-                                              nargout=3)
+                                              nargout=6)
         dm = [list(d) for d in dm]
         self.num_timesteps = len(dm[0])
         if type(peak_locations) == float:
             peak_locations = list([peak_locations])
         else:
             peak_locations = [list(p) for p in peak_locations]
-        spectrum = Spectrum(n=n, dm=dm, peak_locations=peak_locations, **self.__dict__)
+        spectrum = Spectrum(n=n, dm=dm, peak_locations=peak_locations, n_shell=n_shell, gamma_amp=gamma_amp, **self.__dict__)
         return spectrum
 
     def generate_spectra(self, n_instances):
@@ -147,3 +147,25 @@ class S3SpectraGenerator(SpectraGenerator):
     def save_spectra(self, spectra_json, filename):
         self.uploader.upload_json(json.dumps(spectra_json), self.update_metadata(), filename)
 
+
+if __name__ == '__main__':
+    os.chdir(GEN_DIR)
+    engine = matlab.engine.start_matlab()
+    matlab_method = engine.spectra_generator_v2
+    n_max = 4.0
+    n_max_s = 5.0
+    num_channels = 1.0
+    scale = 1.0
+    omega_shift = 10.0
+    dg = 0.5
+    dgs = 0.5
+    gamma_amp_factor = 4.0
+    amp_factor = 5.0
+    epsilon2 = 0.05
+
+    n, dm, peak_locations, omega_res, n_shell, gamma_amp = matlab_method(float(n_max), float(n_max_s),
+                                          float(num_channels), float(scale),
+                                          float(omega_shift), float(dg),
+                                          float(dgs), float(gamma_amp_factor),
+                                          float(amp_factor), float(epsilon2), nargout=6)
+    print(n_shell)
