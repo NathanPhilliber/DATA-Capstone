@@ -1,3 +1,8 @@
+"""
+This code was not produced by our team. It was found on Kaggle. For more information about this class, see:
+https://www.kaggle.com/qqgeogor/keras-lstm-attention-glove840b-lb-0-043
+"""
+
 from tensorflow.keras.layers import Layer
 from tensorflow.keras import backend as K
 from tensorflow.keras import initializers
