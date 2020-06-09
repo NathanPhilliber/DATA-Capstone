@@ -104,3 +104,9 @@ spectra_generator = LocalSpectraGenerator(matlab_script=matlab_script, nc=num_ch
                                              scale=scale, omega_shift=omega_shift, dg=dg, dgs=dgs, save_dir=directory)
 ```
  in *run_gen.py*
+ 
+ ## Notes for Future Developers
+ The following sections may be helpful for future development.
+ 
+ ### Constants
+ Most constants are defined in `./utils.py`. All of the directories are mapped here for easy refactoring of the project structure.
