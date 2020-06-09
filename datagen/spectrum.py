@@ -1,4 +1,3 @@
-from utils import *
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -6,9 +5,29 @@ import math
 
 
 class Spectrum:
-
+    """
+    A class responsible for storing data related to a single spectrum.
+    """
     def __init__(self, n, dm, dg, dgs, peak_locations, n_max, num_channels, scale, omega_shift, n_max_s,
                  gamma_amp_factor=None, amp_factor=None, epsilon2=None, n_shell=None, gamma_amp=None, **kwargs):
+        """
+
+        :param n: int Number of liquid modes in 1 window.
+        :param dm: np.array The spectrum data obtained from the matlab script.
+        :param dg: float Variation in gamma for liquid modes.
+        :param dgs: float Variation in gamma for shell modes.
+        :param peak_locations: np.array Locations of liquid modes.
+        :param n_max: int The maximum number of possible liquid modes per window in script used to generate data.
+        :param num_channels: int The number of channels in spectrum data.
+        :param scale: int The scale of the spectrum data.
+        :param omega_shift: float Used for generation of x-axis.
+        :param n_max_s: int Maximum number of shell modes in script used to generate data.
+        :param gamma_amp_factor: float (optional) Scales gammaAmp: `GammaAmp=scale./(1+0.5*dG)./gammaAmpFactor;`
+        :param amp_factor: float (optional) Scales Amp0S: `Amp0S=rand(nc.*K,NS)./ampFactor;`
+        :param epsilon2: float (optional) Argument that scales white noise: ` D=D + epsilon2.*max(D).*rand(1,omega_res)`
+        :param n_shell: int Number of shell modes in this spectrum.
+        :param gamma_amp: float Gamma Amp value.
+        """
         self.n = n
         self.dm = dm
         self.peak_locations = peak_locations
@@ -27,9 +46,20 @@ class Spectrum:
         self.gamma_amp = gamma_amp
 
     def get_num_timesteps(self):
+        """
+        Returns the Number of timesteps in this spectrum object.
+
+        :return: int
+        """
         return len(self.dm[0])
 
     def plot_channel(self, channel_number, ax=None):
+        """
+
+        :param channel_number: int Channel number to plot.
+        :param ax: ax The axis used to plot channels on.
+        :return: Return plt A plot of the channel specified.
+        """
         if ax is not None:
             sns.lineplot(x=np.linspace(0, 1, len(self.dm[0])), y=self.dm[channel_number], ax=ax)
         else:
@@ -45,6 +75,12 @@ class Spectrum:
         return plt
 
     def plot_channels(self, size, num_channels=None):
+        """
+
+        :param size: tuple The figure size.
+        :param num_channels: int Number of channels to plot.
+        :return: plt A plot of the spectrum with the number of channels specified.
+        """
         assert num_channels <= self.num_channels
         if num_channels is None:
             num_channels = self.num_channels
@@ -60,5 +96,11 @@ class Spectrum:
         return plt
 
     def plot_save_channels(self, save_dir, size):
+        """
+
+        :param save_dir: str The directory in which to store the plot of the spectrum.
+        :param size: int The size of the plot figure.
+        :return: None
+        """
         plt = self.plot_channels(size)
         plt.savefig(save_dir)
