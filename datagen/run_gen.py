@@ -2,7 +2,6 @@ from utils import *
 from datagen.spectra_generator import LocalSpectraGenerator, S3SpectraGenerator, SpectraGenerator
 from datagen.spectra_loader import SpectraLoader
 import click
-import math
 import os
 import math
 
@@ -12,6 +11,10 @@ NUM_EXAMPLE_IMAGES = 10
 
 
 def prompt_matlab_script():
+    """
+
+    :return: list[str] A list of the matlab scripts found under the `matlab_scripts` directory.
+    """
     scripts = sorted(os.listdir(GEN_DIR))
     scripts_prompt = f"Select from the following MATLAB scripts, located in: {to_local_path(GEN_DIR)}"
 
@@ -22,18 +25,13 @@ def prompt_matlab_script():
 
 
 def get_matlab_selection(num_script):
+    """
+
+    :param num_script: int Gets the matlab script of a specified integer.
+    :return: str The matlab script indexed by `num_script`.
+    """
     scripts = sorted(os.listdir(GEN_DIR))
-
     return scripts[num_script]
-
-
-def save_images(dataset_dir, spectra_loader, num_examples):
-    img_dir = 'imgs'
-    img_directory = os.path.join(dataset_dir, img_dir)
-    if img_dir not in os.listdir(dataset_dir):
-        try_create_directory(img_directory)
-
-    spectra_loader.save_spectra_imgs(img_directory, num_examples)
 
 
 @click.command()
@@ -53,6 +51,25 @@ def save_images(dataset_dir, spectra_loader, num_examples):
 @click.option('--epsilon2', type=float, prompt=f'Epsilon2', default=SpectraGenerator.DEFAULT_EPSILON2)
 def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s, scale, omega_shift, dg, dgs, gamma_amp_factor,
          amp_factor, epsilon2):
+    """
+    Use this function in order to create spectra-data with user input through command line arguments.
+
+    :param name: str The name for the directory where we will store the spectra data produced.
+    :param version: str The selected version of the matlab script that will be used to generate data.
+    :param num_instances: in The number of instances that we will generate. Note: This must be larger than 100.
+    :param shard_size: int The number of shards used to store the data.
+    :param num_channels: int The number of channels used to generate the data.
+    :param n_max: int The maximum number of possible liquid modes per window in script used to generate data.
+    :param n_max_s: int Maximum number of shell modes in script used to generate data.
+    :param scale: int The scale of the spectrum data.
+    :param omega_shift: float Used for generation of x-axis.
+    :param dg: float Variation in gamma for liquid modes.
+    :param dgs: float Variation in gamma for shell modes.
+    :param gamma_amp_factor: float (optional) Scales gammaAmp: `GammaAmp=scale./(1+0.5*dG)./gammaAmpFactor;`
+    :param amp_factor: float (optional) Scales Amp0S: `Amp0S=rand(nc.*K,NS)./ampFactor;`
+    :param epsilon2: float (optional) Argument that scales white noise: ` D=D + epsilon2.*max(D).
+    :return: None
+    """
 
     # Setup data directory
     matlab_script = get_matlab_selection(version)
