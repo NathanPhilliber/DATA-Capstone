@@ -80,8 +80,6 @@ python3 -m models.run_train continue
 python3 -m models.run_train evaluate
 ```
 
-![roc_curve](data/results/GoogleModel_BC-1234-50c-all.0513.2202/eval/roc_curve-0517.1722.png)
-
 ## Docker Instructions
 --
 1. ssh into AWS server
@@ -104,3 +102,9 @@ spectra_generator = LocalSpectraGenerator(matlab_script=matlab_script, nc=num_ch
                                              scale=scale, omega_shift=omega_shift, dg=dg, dgs=dgs, save_dir=directory)
 ```
  in *run_gen.py*
+ 
+ ## Notes for Future Developers
+ The following sections may be helpful for future development.
+ 
+ ### Constants
+ Most constants are defined in `./utils.py`. All of the directories are mapped here for easy refactoring of the project structure.
