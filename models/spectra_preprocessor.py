@@ -38,7 +38,6 @@ class SpectraPreprocessor:
         :param loader: SpectraLoader
         :return: X matrix, y vector
         """
-        # TODO: Correct?
         dm = loader.get_dm()
         dm_reshaped = np.array(dm[:self.num_instances])[:, :self.num_channels, :]
         X = dm_reshaped.reshape(dm_reshaped.shape[0], dm_reshaped.shape[2], dm_reshaped.shape[1])
