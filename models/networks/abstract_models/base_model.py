@@ -117,10 +117,10 @@ class BaseModel(ABC):
 
         num_test = preprocessor.get_num_test_instances()
 
-        self.keras_model.fit(preprocessor.train_generator(batch_size=batch_size, encoded=encoded),
+        self.keras_model.fit(preprocessor.train_generator(batch_size=batch_size),
                                        #steps_per_epoch=train_size//batch_size, validation_data=(X_test, y_test),
                                        steps_per_epoch=train_size // batch_size,
-                                       validation_data=preprocessor.test_generator(batch_size=batch_size, encoded=encoded),
+                                       validation_data=preprocessor.test_generator(batch_size=batch_size),
                                        validation_steps=num_test // batch_size,
                                        epochs=epochs)
 

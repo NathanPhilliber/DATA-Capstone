@@ -8,6 +8,7 @@ from datetime import datetime
 import click
 from comet_connection import CometConnection
 from models.evaluator import complete_evaluation, EvaluationReport
+from sklearn.metrics import confusion_matrix
 
 
 """
@@ -434,6 +435,7 @@ def run_evaluate_model(model_name, num_channels, num_instances, dataset_name, nu
     classif_report = eval_report.get_eval_classification_report()
     print("------- Classification Report ------- ")
     print(json.dumps(classif_report, indent=4))
+    print(confusion_matrix(eval_report.y_true_num, eval_report.preds))
     dir = os.path.join(MODEL_RES_DIR, result_name)
     dir_eval = os.path.join(dir, "eval")
     try_create_directory(dir_eval)
