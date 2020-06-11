@@ -152,6 +152,7 @@ def main(name, version, num_instances, shard_size, num_channels, n_max, n_max_s,
             num_saved += len(spectra_test_json)
 
     print("\nSaving info...")
+    spectra_generator.num_instances = num_saved
     spectra_generator.save_metadata(directory)
  
     print(f"Saved {num_saved} spectra to {directory}.\nDone.")
