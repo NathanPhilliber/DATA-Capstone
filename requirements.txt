@@ -6,6 +6,6 @@ matplotlib==3.0.3
 sklearn==0.0
 Keras==2.2.4
 Click==7.0
-Pillow==7.0.0
+Pillow==8.3.2
 comet-ml==3.1.0
 boto==2.49.0
