@@ -1,5 +1,5 @@
 boto3==1.12.41
-numpy==1.16.1
+numpy==1.22.0
 pandas==0.24.1
 seaborn==0.10.0
 matplotlib==3.0.3
